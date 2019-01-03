@@ -4,9 +4,20 @@
 #include "xas.h"
 #include "utils.h"
 
-char ** g_ppstrSourceCode = NULL;
-FILE * g_pSourceFile = NULL; 
+char** g_ppstrSourceCode = NULL;
+FILE* g_pSourceFile = NULL; 
+int g_iSourceFileLine = 0;
 
+void ShutDown()
+{
+    int i;
+    for(i = 0 ; i < g_iSourceFileLine ; i ++)
+    {
+        free(g_ppstrSourceCode[i]);
+    }
+    free(g_ppstrSourceCode);
+    fclose(g_pSourceFile);
+}
 
 int LoadSourceFile(char* FileName)
 {
@@ -64,16 +75,27 @@ int main(int argc, char * argv [])
         printf("need a file!\n");
         exit(1);
     }
-    int line = 0;
+    g_iSourceFileLine = LoadSourceFile(argv[1]);
+
     int i;
-    line = LoadSourceFile(argv[1]);
-    for(i = 0 ; i < line ; i ++)
+    for(i = 0 ; i < g_iSourceFileLine; i ++)
     {
         printf("%s", g_ppstrSourceCode[i]);
     }
-    printf("\n------------------------\n"); 
+    printf("------------------------\n"); 
+
+
+    ShutDown();
     return 0;
 }
+
+
+
+
+
+
+
+
 //copy from a book
 
 void Exit ()
@@ -83,7 +105,7 @@ void Exit ()
     //ShutDown ();
 
     // Exit the program
-    fclose(g_pSourceFile);
+    ShutDown();
     exit ( 0 );
 }
 
@@ -113,6 +135,7 @@ void ExitOnError ( char * pstrErrorMssg )
 */
 void ExitOnCodeError ( char * pstrErrorMssg )
 {
+    printf("has not been impelemented!\n");
 /*
     // Print the message
 

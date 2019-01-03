@@ -2,7 +2,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "ds.h"
 
+
+void _strupr(char *str)
+{
+    while(*str != 0)
+    {
+        if(*str >= 'a' && *str <= 'z')
+            *str -= 32;
+        str ++;
+    }
+}
 void TrimWhiteSpace(char *str)
 {
     int len = strlen(str);
@@ -59,6 +70,7 @@ void StripComments(char *str)
 }
 
 
+//copy from a book
 /******************************************************************************************
 *
 *	IsCharWhitespace ()

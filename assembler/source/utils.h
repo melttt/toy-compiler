@@ -1,13 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#ifndef TRUE
-    #define TRUE                    1           // True
-#endif
-
-#ifndef FALSE
-    #define FALSE                   0           // False
-#endif
+void _strupr(char *str);
 
 void TrimWhiteSpace(char *str);
 void StripComments(char *str);
