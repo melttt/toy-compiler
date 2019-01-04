@@ -4,7 +4,7 @@ TEST_INPUT_FILE := $(DIR)/source/testfile
 C_OBJS := $(shell find $(SOURCE_DIR) -name "*.c")
 
 xas : $(C_OBJS) 
-	gcc $^ -o $@	
+	gcc $^ -o $@ -g
 
 
 r : xas

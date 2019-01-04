@@ -1,6 +1,7 @@
 ;dfsaasfdafdsfds
 ;qweiouyqwiueyqwiue
 ;--------------全局变量---------------
+    var Str = "\""
     var GlobalVar
     var GlobalArray [ 256]   ;sdajlaskdjlaks
 ;-------------123123123
@@ -33,6 +34,9 @@ Func My Func
         Mov GlobalArray [ 1 ], "is"
         Mov GlobalArray [ 2 ], "an"
         Mov GlobalArray [ 3 ], "array"
+
+
+        Mov GlobalArray [ 4 ], Str
 }
 
 

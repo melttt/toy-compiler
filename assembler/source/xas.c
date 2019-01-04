@@ -145,8 +145,10 @@ int SkipToNextLine ()
 
     return TRUE;
 }
+
 Token GetNextToken ()
 {
+    //init
     g_Lexer.iIndex0 = g_Lexer.iIndex1;    
     if ( g_Lexer.iIndex0 >= strlen ( g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ] ) )
     {
@@ -157,14 +159,14 @@ Token GetNextToken ()
     if ( g_Lexer.iCurrLexState == LEX_STATE_END_STRING )
         g_Lexer.iCurrLexState = LEX_STATE_NO_STRING;
 
-
-    if ( g_Lexer.iCurrLexState != LEX_STATE_IN_STRING && ! IsCharWhitespace ( g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ][ g_Lexer.iIndex0 ]))
+    //remove space
+    while ( g_Lexer.iCurrLexState != LEX_STATE_IN_STRING && IsCharWhitespace ( g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ][ g_Lexer.iIndex0 ]))
     {
         ++ g_Lexer.iIndex0;
     }
-    g_Lexer.iIndex1 =g_Lexer.iIndex0;
+    g_Lexer.iIndex1 = g_Lexer.iIndex0;
 
-
+    //get string
     if(g_Lexer.iCurrLexState == LEX_STATE_IN_STRING)
     {
         for(;;g_Lexer.iIndex1 ++)
@@ -176,7 +178,6 @@ Token GetNextToken ()
             }
             if(g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ][ g_Lexer.iIndex1 ] == '"' )
             {
-                g_Lexer.iCurrLexState = LEX_STATE_END_STRING;
                 break;
             }
             if(g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ][ g_Lexer.iIndex1 ] == '\\')
@@ -186,12 +187,8 @@ Token GetNextToken ()
         }
         
     }else{
-        for(;;g_Lexer.iIndex1 ++)
+        for(;g_Lexer.iIndex1 < strlen ( g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ]);g_Lexer.iIndex1 ++)
         {
-            if(g_Lexer.iIndex1 >= strlen ( g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ]))
-            {
-                break;
-            }
             if(IsCharDelimiter(g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ][ g_Lexer.iIndex1 ]))
             {
                 break;
@@ -200,14 +197,188 @@ Token GetNextToken ()
         
     }
 
+    if ( g_Lexer.iIndex1 == g_Lexer.iIndex0 )
+        ++ g_Lexer.iIndex1;
+
+    
+    //copy string
+    int i,j;
+    int IsStr = 0;
+
+    for(i = g_Lexer.iIndex0 ,j = 0 ; i < g_Lexer.iIndex1 ; i ++ ,j ++ )
+    {
+        if(g_Lexer.iCurrLexState == LEX_STATE_IN_STRING && g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ][i] == '\\')
+        {
+            i ++;
+            IsStr = 1;
+        }
+        g_Lexer.pstrCurrLexeme [j] = g_ppstrSourceCode [ g_Lexer.iCurrSourceLine ][i];        
+    }
+    g_Lexer.pstrCurrLexeme [j] = '\0';
+
+    //convert to uppercase
+    if ( g_Lexer.iCurrLexState != LEX_STATE_IN_STRING )
+        _strupr ( g_Lexer.pstrCurrLexeme );
 
 
+    // ---- Token Identification
+    g_Lexer.CurrToken = TOKEN_TYPE_INVALID;
 
 
+    if ( strlen ( g_Lexer.pstrCurrLexeme ) > 1 || g_Lexer.pstrCurrLexeme [ 0 ] != '"' || (g_Lexer.pstrCurrLexeme [ 0 ] == '"' && IsStr))
+    {
+        if ( g_Lexer.iCurrLexState == LEX_STATE_IN_STRING )
+        {
+            g_Lexer.CurrToken = TOKEN_TYPE_STRING;
+            return TOKEN_TYPE_STRING;
+        }
+    }
 
+    if ( strlen ( g_Lexer.pstrCurrLexeme ) == 1 )
+    {
+
+        switch ( g_Lexer.pstrCurrLexeme [ 0 ] )
+        {
+            // Double-Quote
+
+            case '"':
+                // If a quote is read, advance the lexing state so that strings are lexed
+                // properly
+
+                switch ( g_Lexer.iCurrLexState )
+                {
+                    // If we're not lexing strings, tell the lexer we're now
+                    // in a string
+
+                    case LEX_STATE_NO_STRING:
+                        g_Lexer.iCurrLexState = LEX_STATE_IN_STRING;
+                        break;
+
+                        // If we're in a string, tell the lexer we just ended a string
+
+                    case LEX_STATE_IN_STRING:
+                        g_Lexer.iCurrLexState = LEX_STATE_END_STRING;
+                        break;
+                }
+
+                g_Lexer.CurrToken = TOKEN_TYPE_QUOTE;
+                break;
+
+                // Comma
+
+            case ',':
+                g_Lexer.CurrToken = TOKEN_TYPE_COMMA;
+                break;
+
+                // Colon
+
+            case ':':
+                g_Lexer.CurrToken = TOKEN_TYPE_COLON;
+                break;
+
+                // Opening Bracket
+
+            case '[':
+                g_Lexer.CurrToken = TOKEN_TYPE_OPEN_BRACKET;
+                break;
+
+                // Closing Bracket
+
+            case ']':
+                g_Lexer.CurrToken = TOKEN_TYPE_CLOSE_BRACKET;
+                break;
+
+                // Opening Brace
+
+            case '{':
+                g_Lexer.CurrToken = TOKEN_TYPE_OPEN_BRACE;
+                break;
+
+                // Closing Brace
+
+            case '}':
+                g_Lexer.CurrToken = TOKEN_TYPE_CLOSE_BRACE;
+                break;
+
+                // Newline
+
+            case '\n':
+                g_Lexer.CurrToken = TOKEN_TYPE_NEWLINE;
+                break;
+        }
+    }
+
+    InstrLookup Instr;
+    if ( IsStringInteger ( g_Lexer.pstrCurrLexeme ) )
+        g_Lexer.CurrToken = TOKEN_TYPE_INT;
+    else if ( IsStringFloat ( g_Lexer.pstrCurrLexeme ) )
+        g_Lexer.CurrToken = TOKEN_TYPE_FLOAT;
+    else if ( IsStringIdent ( g_Lexer.pstrCurrLexeme ) )
+        g_Lexer.CurrToken = TOKEN_TYPE_IDENT;
+    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "SETSTACKSIZE" ) == 0 )
+        g_Lexer.CurrToken = TOKEN_TYPE_SETSTACKSIZE;
+    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "VAR" ) == 0 )
+        g_Lexer.CurrToken = TOKEN_TYPE_VAR;
+    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "FUNC" ) == 0 )
+        g_Lexer.CurrToken = TOKEN_TYPE_FUNC;
+    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "PARAM" ) == 0 )
+        g_Lexer.CurrToken =TOKEN_TYPE_PARAM;
+    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "_RETVAL" ) == 0 )
+        g_Lexer.CurrToken = TOKEN_TYPE_REG_RETVAL;
+    else if ( GetInstrByMnemonic ( g_Lexer.pstrCurrLexeme, & Instr ) )
+        g_Lexer.CurrToken = TOKEN_TYPE_INSTR;
+    else
+        g_Lexer.CurrToken = TOKEN_TYPE_INVALID;
+
+    return g_Lexer.CurrToken;
 }
 
+char GetLookAheadChar ()
+{
+    // We don't actually want to move the lexer's indices, so we'll make a copy of them
+    int iCurrSourceLine = g_Lexer.iCurrSourceLine;
+    unsigned int iIndex = g_Lexer.iIndex1;
+    // If the next lexeme is not a string, scan past any potential leading whitespace
+    if ( g_Lexer.iCurrLexState != LEX_STATE_IN_STRING )
+    {
+        // Scan through the whitespace and check for the end of the line
+        while ( TRUE )
+        {
+            // If we've passed the end of the line, skip to the next line and reset the
+            // index to zero
 
+            if ( iIndex >= strlen ( g_ppstrSourceCode [ iCurrSourceLine ] ) )
+            {
+                // Increment the source code index
+
+                iCurrSourceLine += 1;
+
+                // If we've passed the end of the source file, just return a null character
+
+                if ( iCurrSourceLine >= g_iSourceFileLine )
+                    return 0;
+
+                // Otherwise, reset the index to the first character on the new line
+
+                iIndex = 0;
+            }
+
+            // If the current character is not whitespace, return it, since it's the first
+            // character of the next lexeme and is thus the look-ahead
+
+            if ( ! IsCharWhitespace ( g_ppstrSourceCode [ iCurrSourceLine ][ iIndex ] ) )
+                break;
+
+            // It is whitespace, however, so move to the next character and continue scanning
+
+            ++ iIndex;
+        }
+    }
+
+    // Return whatever character the loop left iIndex at
+
+    return g_ppstrSourceCode [ iCurrSourceLine ][ iIndex ];
+}
 
 int main(int argc, char * argv [])
 {
@@ -221,7 +392,6 @@ int main(int argc, char * argv [])
 
 
     InitInstrTable();
-    ResetLexer ();
     int i;
     for(i = 0 ; i < g_iSourceFileLine; i ++)
     {
@@ -229,10 +399,18 @@ int main(int argc, char * argv [])
     }
     printf("------------------------\n"); 
 
+    ResetLexer ();
+    while((i = GetNextToken()) != END_OF_TOKEN_STREAM)
+    {
+        printf("%s ", GetCurrLexeme());
+    }
+
+    /*
     for(i = 0 ; i < g_iInstrTableLength ; i ++)
     {
         printf("%d %d :%s\n",g_InstrTable[i].iOpcode, g_InstrTable[i].iOpCount, g_InstrTable[i].pstrMnemonic);
     }
+    */
 
     ShutDown();
     return 0;
