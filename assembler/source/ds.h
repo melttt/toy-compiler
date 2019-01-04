@@ -9,6 +9,15 @@
     #define FALSE                   0           // False
 #endif
 
+typedef struct _ScriptHeader                    // Script header data
+{
+    int iStackSize;                             // Requested stack size
+    int iGlobalDataSize;						// The size of the script's global data
+    int iIsMainFuncPresent;                     // Is _Main () present?
+    int iMainFuncIndex;							// _Main ()'s function index
+}ScriptHeader;
+
+
 typedef struct _LinkedListNode                  // A linked list node
 {
     void* pData;                               // Pointer to the node's data
@@ -27,6 +36,7 @@ typedef struct _LinkedList                      // A linked list
 #define MAX_INSTR_MNEMONIC_SIZE     16          // Maximum size of an instruction
 // mnemonic's string
  #define MAX_IDENT_SIZE              256        // Maximum identifier size
+
 // ---- Instruction Lookup Table ----------------------------------------------------------
 
 typedef int OpTypes;                            // Operand type bitfield alias type
@@ -39,6 +49,17 @@ typedef struct _InstrLookup                     // An instruction lookup
 }InstrLookup;
 
 // ---- Assembled Instruction Stream ------------------------------------------------------
+// ---- Operand Type Bitfield Flags ---------------------------------------------------
+#define OP_TYPE_INT                 0           // Integer literal value
+#define OP_TYPE_FLOAT               1           // Floating-point literal value
+#define OP_TYPE_STRING_INDEX        2           // String literal value
+#define OP_TYPE_ABS_STACK_INDEX     3           // Absolute array index
+#define OP_TYPE_REL_STACK_INDEX     4           // Relative array index
+#define OP_TYPE_INSTR_INDEX         5           // Instruction index
+#define OP_TYPE_FUNC_INDEX          6           // Function index
+#define OP_TYPE_HOST_API_CALL_INDEX 7           // Host API call index
+#define OP_TYPE_REG                 8           // Register
+
 typedef struct _Op                              // An assembled operand
 {
     int iType;                                  // Type
@@ -97,4 +118,38 @@ typedef struct _SymbolNode                      // A symbol table node
     // points
     int iFuncIndex;                             // Function in which the symbol resides
 }SymbolNode;
+
+
+
+
+extern LinkedList g_StringTable;
+extern LinkedList g_FuncTable;
+extern LinkedList g_SymbolTable;
+extern LinkedList g_LabelTable;
+extern LinkedList g_HostAPICallTable;
+extern InstrLookup g_InstrTable[MAX_INSTR_LOOKUP_COUNT];
+extern int g_iInstrTableLength;
+
+extern Instr* g_pInstrStream;
+extern int g_iInstrSize;
+
+extern ScriptHeader g_ScriptHeader;
+
+
+void InitLinkedList ( LinkedList * pList );
+int AddNode ( LinkedList * pList, void * pData );
+void FreeLinkedList ( LinkedList * pList );
+int AddString ( LinkedList * pList, char * pstrString );
+FuncNode * GetFuncByName ( char * pstrName );
+void SetFuncInfo ( char * pstrName, int iParamCount, int iLocalDataSize );
+int AddFunc ( char * pstrName, int iEntryPoint );
+SymbolNode * GetSymbolByIdent ( char * pstrIdent, int iFuncIndex );
+int GetStackIndexByIdent ( char * pstrIdent, int iFuncIndex );
+int GetSizeByIdent ( char * pstrIdent, int iFuncIndex );
+int AddSymbol ( char * pstrIdent, int iSize, int iStackIndex, int iFuncIndex );
+LabelNode * GetLabelByIdent ( char * pstrIdent, int iFuncIndex );
+int AddLabel ( char * pstrIdent, int iTargetIndex, int iFuncIndex );
+int AddInstrLookup ( char * pstrMnemonic, int iOpcode, int iOpCount );
+void SetOpType ( int iInstrIndex, int iOpIndex, OpTypes iOpType );
+int GetInstrByMnemonic ( char * pstrMnemonic, InstrLookup * pInstr );
 #endif

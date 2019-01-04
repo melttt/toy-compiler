@@ -1,22 +1,41 @@
-           MOV eax, a                     
-Sub "123123213", 123123     ;ahahahhahaha         
-    ;asdfhkjsdfkshf啊哈
+;dfsaasfdafdsfds
+;qweiouyqwiueyqwiue
+;--------------全局变量---------------
+    var GlobalVar
+    var GlobalArray [ 256]   ;sdajlaskdjlaks
+;-------------123123123
+        Func MyAdd
+{
+    ;sadf
+    Param Y
+    Param X
+    ; jububian
+    Var Sum
+    Mov Sum, X
+    Add Sum, Y
+    ;sfdsf
+    Mov _RetVal Sum
+    ;add ret by auto
+}
+
+;dsf
+Func My Func
+{
+    Var MySum
+        Push 16
+        Push 32
+        Call My Add
+        Mov Mysum, _RetVal
+        Mul MySum, 2
+        Mov GlobalVar, MySum
+        ;sfddfsdfdf
+        Mov GlobalArray [ 0 ], "This"
+        Mov GlobalArray [ 1 ], "is"
+        Mov GlobalArray [ 2 ], "an"
+        Mov GlobalArray [ 3 ], "array"
+}
 
 
-EEE "asdsad"    
-
-ret
-
-label:
-
-
-
-fun{
-
-    REASD "asdasd;sdafasdf" "fda;kslfdaksj\"sadfas\\df"  ;sadfsdf
-
-
-
-                SUB eax,    dsf         
-
+Func _Main{
+    Call MyFunc
 }
