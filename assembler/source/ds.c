@@ -13,9 +13,11 @@ InstrLookup g_InstrTable[MAX_INSTR_LOOKUP_COUNT];
 int g_iInstrTableLength;
 
 Instr* g_pInstrStream = NULL;
-int g_iInstrSize;
+int g_iInstrStreamSize;
+int g_iCurrInstrIndex;
 
 ScriptHeader g_ScriptHeader;
+int g_iIsSetStackSizeFound;
 
 void InitLinkedList ( LinkedList * pList )
 {

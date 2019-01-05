@@ -1,7 +1,7 @@
 ;dfsaasfdafdsfds
 ;qweiouyqwiueyqwiue
 ;--------------全局变量---------------
-    var Str = "\""
+    var Str
     var GlobalVar
     var GlobalArray [ 256]   ;sdajlaskdjlaks
 ;-------------123123123

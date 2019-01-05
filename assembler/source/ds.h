@@ -9,6 +9,7 @@
     #define FALSE                   0           // False
 #endif
 
+#define MAIN_FUNC_NAME				"_MAIN"		// _Main ()'s name
 typedef struct _ScriptHeader                    // Script header data
 {
     int iStackSize;                             // Requested stack size
@@ -131,10 +132,11 @@ extern InstrLookup g_InstrTable[MAX_INSTR_LOOKUP_COUNT];
 extern int g_iInstrTableLength;
 
 extern Instr* g_pInstrStream;
-extern int g_iInstrSize;
+extern int g_iInstrStreamSize;
 
 extern ScriptHeader g_ScriptHeader;
-
+extern int g_iIsSetStackSizeFound;
+extern int g_iCurrInstrIndex;
 
 void InitLinkedList ( LinkedList * pList );
 int AddNode ( LinkedList * pList, void * pData );
