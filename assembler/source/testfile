@@ -5,6 +5,7 @@
     var GlobalVar
     var GlobalArray [ 256]   ;sdajlaskdjlaks
 ;-------------123123123
+SETSTACKSIZE 4096
         Func MyAdd
 {
     ;sadf
@@ -15,17 +16,17 @@
     Mov Sum, X
     Add Sum, Y
     ;sfdsf
-    Mov _RetVal Sum
+    Mov _RetVal, Sum
     ;add ret by auto
 }
 
 ;dsf
-Func My Func
+Func MyFunc
 {
     Var MySum
         Push 16
         Push 32
-        Call My Add
+        Call MyAdd
         Mov Mysum, _RetVal
         Mul MySum, 2
         Mov GlobalVar, MySum
@@ -35,11 +36,17 @@ Func My Func
         Mov GlobalArray [ 2 ], "an"
         Mov GlobalArray [ 3 ], "array"
 
-
         Mov GlobalArray [ 4 ], Str
 }
 
 
 Func _Main{
+    var aa
+    var b
+    Mov aa, 1
+    Mov b, 2
+    jg b, aa, XXX
+XXX:
+    CallHost OKOK
     Call MyFunc
 }

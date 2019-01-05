@@ -89,7 +89,6 @@
 
 
 #define ZeroOperatorInstrState \
-    ENTRY(Jmp ,INSTR_JMP)  \
     ENTRY(Ret ,INSTR_RET)  
 
 #define OneOperatorInstrState \
@@ -102,6 +101,7 @@
     ENTRY(Call ,INSTR_CALL , OP_FLAG_TYPE_FUNC_NAME)  \
     ENTRY(CallHost ,INSTR_CALLHOST , OP_FLAG_TYPE_HOST_API_CALL)  \
     ENTRY(Pause ,INSTR_PAUSE , INSTR_ATH2)  \
+    ENTRY(Jmp ,INSTR_JMP, OP_FLAG_TYPE_LINE_LABEL)  \
     ENTRY(Exit ,INSTR_EXIT , INSTR_ATH2)  
 
 

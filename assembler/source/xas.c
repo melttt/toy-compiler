@@ -90,10 +90,10 @@ void InitInstrTable (){
 #undef ENTRY
 
 #define ENTRY(InstrName, InstrCode, InstrFlag1, InstrFlag2, InstrFlag3) \
-    iInstrIndex = AddInstrLookup (#InstrName, InstrCode, 2 ); \
+    iInstrIndex = AddInstrLookup (#InstrName, InstrCode, 3 ); \
     SetOpType ( iInstrIndex, 0, InstrFlag1);  \
     SetOpType ( iInstrIndex, 1, InstrFlag2);    \
-    SetOpType ( iInstrIndex, 1, InstrFlag3);
+    SetOpType ( iInstrIndex, 2, InstrFlag3);
 
     ThreeOperatorInstrState
 #undef ENTRY
@@ -311,24 +311,22 @@ Token GetNextToken ()
     InstrLookup Instr;
     if ( IsStringInteger ( g_Lexer.pstrCurrLexeme ) )
         g_Lexer.CurrToken = TOKEN_TYPE_INT;
-    else if ( IsStringFloat ( g_Lexer.pstrCurrLexeme ) )
+    if ( IsStringFloat ( g_Lexer.pstrCurrLexeme ) )
         g_Lexer.CurrToken = TOKEN_TYPE_FLOAT;
-    else if ( IsStringIdent ( g_Lexer.pstrCurrLexeme ) )
+    if ( IsStringIdent ( g_Lexer.pstrCurrLexeme ) )
         g_Lexer.CurrToken = TOKEN_TYPE_IDENT;
-    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "SETSTACKSIZE" ) == 0 )
+    if ( strcmp ( g_Lexer.pstrCurrLexeme, "SETSTACKSIZE" ) == 0 )
         g_Lexer.CurrToken = TOKEN_TYPE_SETSTACKSIZE;
-    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "VAR" ) == 0 )
+    if ( strcmp ( g_Lexer.pstrCurrLexeme, "VAR" ) == 0 )
         g_Lexer.CurrToken = TOKEN_TYPE_VAR;
-    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "FUNC" ) == 0 )
+    if ( strcmp ( g_Lexer.pstrCurrLexeme, "FUNC" ) == 0 )
         g_Lexer.CurrToken = TOKEN_TYPE_FUNC;
-    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "PARAM" ) == 0 )
+    if ( strcmp ( g_Lexer.pstrCurrLexeme, "PARAM" ) == 0 )
         g_Lexer.CurrToken =TOKEN_TYPE_PARAM;
-    else if ( strcmp ( g_Lexer.pstrCurrLexeme, "_RETVAL" ) == 0 )
+    if ( strcmp ( g_Lexer.pstrCurrLexeme, "_RETVAL" ) == 0 )
         g_Lexer.CurrToken = TOKEN_TYPE_REG_RETVAL;
-    else if ( GetInstrByMnemonic ( g_Lexer.pstrCurrLexeme, & Instr ) )
+    if ( GetInstrByMnemonic ( g_Lexer.pstrCurrLexeme, & Instr ) )
         g_Lexer.CurrToken = TOKEN_TYPE_INSTR;
-    else
-        g_Lexer.CurrToken = TOKEN_TYPE_INVALID;
 
     return g_Lexer.CurrToken;
 }
@@ -441,7 +439,7 @@ void AssmblSourceFile()
                     g_iIsSetStackSizeFound = TRUE;
 
                     break;
-
+                
                 case TOKEN_TYPE_VAR:
                 {
                     if ( GetNextToken () != TOKEN_TYPE_IDENT )
@@ -489,7 +487,6 @@ void AssmblSourceFile()
                     else
                         g_ScriptHeader.iGlobalDataSize += iSize;
 
-
                     break;
                 }
                 case TOKEN_TYPE_FUNC:
@@ -500,7 +497,7 @@ void AssmblSourceFile()
                     if ( GetNextToken () != TOKEN_TYPE_IDENT )
                         ExitOnCodeError ( ERROR_MSSG_IDENT_EXPECTED );
 
-                    char * pstrFuncName = GetCurrLexeme ();
+                    char* pstrFuncName = GetCurrLexeme ();
 
                     // Calculate the function's entry point, which is the instruction immediately
                     // following the current one, which is in turn equal to the instruction stream
@@ -548,9 +545,8 @@ void AssmblSourceFile()
                 }
                 case TOKEN_TYPE_PARAM:
                 {
-                    if ( iIsFuncActive )
-                        ExitOnCodeError ( ERROR_MSSG_NESTED_FUNC );
-
+                    if ( ! iIsFuncActive )
+                        ExitOnCodeError ( ERROR_MSSG_GLOBAL_PARAM );
 
                     if ( strcmp ( pstrCurrFuncName, MAIN_FUNC_NAME ) == 0 )
 						ExitOnCodeError ( ERROR_MSSG_MAIN_PARAM );
@@ -588,7 +584,6 @@ void AssmblSourceFile()
 
                     // Try adding the label to the label table, and print an error if it
                     // already exists
-
                     if ( AddLabel ( pstrIdent, iTargetIndex, iFuncIndex ) == -1 )
                         ExitOnCodeError ( ERROR_MSSG_LINE_LABEL_REDEFINITION );
 
@@ -612,8 +607,8 @@ void AssmblSourceFile()
                 }
 
                 default:
-                if ( g_Lexer.CurrToken != TOKEN_TYPE_NEWLINE )
-                    ExitOnCodeError ( ERROR_MSSG_INVALID_INPUT );
+                    if ( g_Lexer.CurrToken != TOKEN_TYPE_NEWLINE )
+                        ExitOnCodeError ( ERROR_MSSG_INVALID_INPUT );
 
             }
              if ( ! SkipToNextLine () )
@@ -935,7 +930,6 @@ void AssmblSourceFile()
                     //    ExitOnCodeError ( ERROR_MSSG_INVALID_INPUT );
 
                     g_pInstrStream [ g_iCurrInstrIndex ].pOpList = pOpList;
-
                     ++ g_iCurrInstrIndex;
 
                     break;
@@ -952,7 +946,296 @@ void AssmblSourceFile()
 
 
 
+void PrintTableInfo()
+{
+    int i;
+    LinkedListNode* tmp = g_StringTable.pHead;
+    printf("String Table:\n");
+    while(tmp)
+    {
+        printf("%s\n", (char*)tmp->pData);
+        tmp = tmp->pNext;
+    }
 
+    tmp = g_FuncTable.pHead;
+    printf("Function Table:\n");
+    while(tmp)
+    {
+        printf("name:%s EP:%d paraC:%d lsize:%d\n", ((FuncNode*)tmp->pData)->pstrName, ((FuncNode*)tmp->pData)->iEntryPoint, ((FuncNode*)tmp->pData)->iParamCount, ((FuncNode*)tmp->pData)->iLocalDataSize);
+        tmp = tmp->pNext;
+    }
+
+    tmp = g_SymbolTable.pHead;
+    printf("Symble Table:\n");
+    while(tmp)
+    {
+        printf("name:%s S:%d SI:%d FI:%d\n", ((SymbolNode*)tmp->pData)->pstrIdent, ((SymbolNode*)tmp->pData)->iSize, ((SymbolNode*)tmp->pData)->iStackIndex, ((SymbolNode*)tmp->pData)->iFuncIndex);
+        tmp = tmp->pNext;
+    }
+
+    tmp = g_LabelTable.pHead;
+    printf("Label Table:\n");
+    while(tmp)
+    {
+        printf("name:%s TI:%d FI:%d\n", ((LabelNode*)tmp->pData)->pstrIdent, ((LabelNode*)tmp->pData)->iTargetIndex,((LabelNode*)tmp->pData)->iFuncIndex);
+        tmp = tmp->pNext;
+    }
+
+    tmp = g_HostAPICallTable.pHead;
+    printf("HostAPICallTable:\n");
+    while(tmp)
+    {
+        printf("%s\n", (char*)tmp->pData);
+        tmp = tmp->pNext;
+    }
+
+    printf("Instruction Stream\n");
+    for(i = 0 ; i < g_iInstrStreamSize ; i ++)
+    {
+        printf("OP:%d COUNT:%d\n",g_pInstrStream[i].iOpcode, g_pInstrStream[i].iOpCount);
+    }
+}
+char g_pstrExecFilename[10] = "outputfile";
+void BuildXSE ()
+{
+    // ---- Open the output file
+
+    FILE * pExecFile;
+    if ( ! ( pExecFile = fopen ( g_pstrExecFilename, "wb" ) ) )
+        ExitOnError ( "Could not open executable file for output" );
+
+    // ---- Write the header
+    // Write the ID string (4 bytes)
+
+    fwrite ( XSE_ID_STRING, 4, 1, pExecFile );
+    // Write the version (1 byte for each component, 2 total)
+
+    char cVersionMajor = VERSION_MAJOR,
+         cVersionMinor = VERSION_MINOR;
+    fwrite ( & cVersionMajor, 1, 1, pExecFile );
+    fwrite ( & cVersionMinor, 1, 1, pExecFile );
+
+    // Write the stack size (4 bytes)
+
+    fwrite ( & g_ScriptHeader.iStackSize, 4, 1, pExecFile );
+
+    // Write the global data size (4 bytes )
+
+    fwrite ( & g_ScriptHeader.iGlobalDataSize, 4, 1, pExecFile );
+
+    // Write the _Main () flag (1 byte)
+
+    char cIsMainPresent = 0;
+    if ( g_ScriptHeader.iIsMainFuncPresent )
+        cIsMainPresent = 1;
+    fwrite ( & cIsMainPresent, 1, 1, pExecFile );
+
+    // Write the _Main () function index (4 bytes)
+
+    fwrite ( & g_ScriptHeader.iMainFuncIndex, 4, 1, pExecFile );
+
+    // ---- Write the instruction stream
+
+    // Output the instruction count (4 bytes)
+
+    fwrite ( & g_iInstrStreamSize, 4, 1, pExecFile );
+
+    // Loop through each instruction and write its data out
+
+    for ( int iCurrInstrIndex = 0; iCurrInstrIndex < g_iInstrStreamSize; ++ iCurrInstrIndex )
+    {
+        // Write the opcode (2 bytes)
+
+        short sOpcode = g_pInstrStream [ iCurrInstrIndex ].iOpcode;
+        fwrite ( & sOpcode, 2, 1, pExecFile );
+
+        // Write the operand count (1 byte)
+
+        char iOpCount = g_pInstrStream [ iCurrInstrIndex ].iOpCount;
+        fwrite ( & iOpCount, 1, 1, pExecFile );
+
+        // Loop through the operand list and print each one out
+
+        for ( int iCurrOpIndex = 0; iCurrOpIndex < iOpCount; ++ iCurrOpIndex )
+        {
+            // Make a copy of the operand pointer for convinience
+
+            Op CurrOp = g_pInstrStream [ iCurrInstrIndex ].pOpList [ iCurrOpIndex ];
+
+            // Create a character for holding operand types (1 byte)
+
+            char cOpType = CurrOp.iType;
+            fwrite ( & cOpType, 1, 1, pExecFile );
+
+            // Write the operand depending on its type
+
+            switch ( CurrOp.iType )
+            {
+                // Integer literal
+
+                case OP_TYPE_INT:
+                    fwrite ( & CurrOp.iIntLiteral, sizeof ( int ), 1, pExecFile );
+                    break;
+
+                    // Floating-point literal
+
+                case OP_TYPE_FLOAT:
+                    fwrite ( & CurrOp.fFloatLiteral, sizeof ( float ), 1, pExecFile );
+                    break;
+
+                    // String index
+
+                case OP_TYPE_STRING_INDEX:
+                    fwrite ( & CurrOp.iStringTableIndex, sizeof ( int ), 1, pExecFile );
+                    break;
+
+                    // Instruction index
+
+                case OP_TYPE_INSTR_INDEX:
+                    fwrite ( & CurrOp.iInstrIndex, sizeof ( int ), 1, pExecFile );
+                    break;
+
+                    // Absolute stack index
+
+                case OP_TYPE_ABS_STACK_INDEX:
+                    fwrite ( & CurrOp.iStackIndex, sizeof ( int ), 1, pExecFile );
+                    break;
+
+                    // Relative stack index
+
+                case OP_TYPE_REL_STACK_INDEX:
+                    fwrite ( & CurrOp.iStackIndex, sizeof ( int ), 1, pExecFile );
+                    fwrite ( & CurrOp.iOffsetIndex, sizeof ( int ), 1, pExecFile );
+                    break;
+
+                    // Function index
+
+                case OP_TYPE_FUNC_INDEX:
+                    fwrite ( & CurrOp.iFuncIndex, sizeof ( int ), 1, pExecFile );
+                    break;
+
+                    // Host API call index
+
+                case OP_TYPE_HOST_API_CALL_INDEX:
+                    fwrite ( & CurrOp.iHostAPICallIndex, sizeof ( int ), 1, pExecFile );
+                    break;
+
+                    // Register
+
+                case OP_TYPE_REG:
+                    fwrite ( & CurrOp.iReg, sizeof ( int ), 1, pExecFile );
+                    break;
+            }
+        }
+    }
+
+    // Create a node pointer for traversing the lists
+
+    int iCurrNode;
+    LinkedListNode * pNode;
+
+    // ---- Write the string table
+
+    // Write out the string count (4 bytes)
+
+    fwrite ( & g_StringTable.iNodeCount, 4, 1, pExecFile );
+
+    // Set the pointer to the head of the list
+
+    pNode = g_StringTable.pHead;
+
+    // Create a character for writing parameter counts
+
+    char cParamCount;
+
+    // Loop through each node in the list and write out its string
+
+    for ( iCurrNode = 0; iCurrNode < g_StringTable.iNodeCount; ++ iCurrNode )
+    {
+        // Copy the string and calculate its length
+
+        char * pstrCurrString = ( char * ) pNode->pData;
+        int iCurrStringLength = strlen ( pstrCurrString );
+
+        // Write the length (4 bytes), followed by the string data (N bytes)
+
+        fwrite ( & iCurrStringLength, 4, 1, pExecFile );
+        fwrite ( pstrCurrString, strlen ( pstrCurrString ), 1, pExecFile );
+
+        // Move to the next node
+
+        pNode = pNode->pNext;
+    }
+
+    // ---- Write the function table
+
+    // Write out the function count (4 bytes)
+
+    fwrite ( & g_FuncTable.iNodeCount, 4, 1, pExecFile );
+
+    // Set the pointer to the head of the list
+
+    pNode = g_FuncTable.pHead;
+
+    // Loop through each node in the list and write out its function info
+
+    for ( iCurrNode = 0; iCurrNode < g_FuncTable.iNodeCount; ++ iCurrNode )
+    {
+        // Create a local copy of the function
+
+        FuncNode * pFunc = ( FuncNode * ) pNode->pData;
+
+        // Write the entry point (4 bytes)
+
+        fwrite ( & pFunc->iEntryPoint, sizeof ( int ), 1, pExecFile );
+
+        // Write the parameter count (1 byte)
+
+        cParamCount = pFunc->iParamCount;
+        fwrite ( & cParamCount, 1, 1, pExecFile );
+
+        // Write the local data size (4 bytes)
+
+        fwrite ( & pFunc->iLocalDataSize, sizeof ( int ), 1, pExecFile );
+
+        // Move to the next node
+
+        pNode = pNode->pNext;
+    }
+
+    // ---- Write the host API call table
+
+    // Write out the call count (4 bytes)
+
+    fwrite ( & g_HostAPICallTable.iNodeCount, 4, 1, pExecFile );
+
+    // Set the pointer to the head of the list
+
+    pNode = g_HostAPICallTable.pHead;
+
+    // Loop through each node in the list and write out its string
+
+    for ( iCurrNode = 0; iCurrNode < g_HostAPICallTable.iNodeCount; ++ iCurrNode )
+    {
+        // Copy the string pointer and calculate its length
+
+        char * pstrCurrHostAPICall = ( char * ) pNode->pData;
+        char cCurrHostAPICallLength = strlen ( pstrCurrHostAPICall );
+
+        // Write the length (1 byte), followed by the string data (N bytes)
+
+        fwrite ( & cCurrHostAPICallLength, 1, 1, pExecFile );
+        fwrite ( pstrCurrHostAPICall, strlen ( pstrCurrHostAPICall ), 1, pExecFile );
+
+        // Move to the next node
+
+        pNode = pNode->pNext;
+    }
+
+    // ---- Close the output file
+
+    fclose ( pExecFile );
+}
 
 int main(int argc, char * argv [])
 {
@@ -973,11 +1256,20 @@ int main(int argc, char * argv [])
     }
     printf("------------------------\n"); 
 
+
+
+    AssmblSourceFile();
+PrintTableInfo();
+BuildXSE();
+
+
+    /*
     ResetLexer ();
     while((i = GetNextToken()) != END_OF_TOKEN_STREAM)
     {
         printf("%s ", GetCurrLexeme());
     }
+    */
 
     /*
     for(i = 0 ; i < g_iInstrTableLength ; i ++)

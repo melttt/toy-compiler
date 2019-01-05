@@ -1,5 +1,10 @@
 #ifndef XAS_H
 #define XAS_H
+#define XSE_ID_STRING               "XSE0"      // Written to the file to state it's
+// validity
+#define VERSION_MAJOR               0           // Major version number
+#define VERSION_MINOR               4           // Minor version number
+
 
 #define MAX_SOURCE_CODE_SIZE        65536       // Maximum number of lines in source
 #define MAX_SOURCE_LINE_SIZE        1024        // Maximum source line length
