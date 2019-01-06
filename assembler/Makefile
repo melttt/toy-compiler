@@ -9,8 +9,8 @@ xas : $(C_OBJS)
 
 
 r : xas
-	./xas $(TEST_INPUT_FILE2)
+	./xas $(TEST_INPUT_FILE)
 
 clean: 
-	rm -f ./xas
+	rm -f ./xas ./xas.out
 

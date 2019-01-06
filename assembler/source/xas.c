@@ -9,6 +9,7 @@
 char** g_ppstrSourceCode = NULL;
 FILE* g_pSourceFile = NULL; 
 int g_iSourceFileLine = 0;
+char g_pstrExecFilename[MAX_SOURCE_LINE_SIZE] = "xas.out";
 Lexer g_Lexer;
 
 void ShutDown()
@@ -19,7 +20,22 @@ void ShutDown()
         free(g_ppstrSourceCode[i]);
     }
     free(g_ppstrSourceCode);
-    fclose(g_pSourceFile);
+
+    for(i = 0 ; i < g_iInstrStreamSize ; i ++)
+    {
+        if(g_pInstrStream[i].iOpCount)
+        {
+            free(g_pInstrStream[i].pOpList);
+        }
+    }
+    free(g_pInstrStream);
+
+    FreeLinkedList(&g_StringTable);
+    FreeLinkedList(&g_FuncTable);
+    FreeLinkedList(&g_SymbolTable);
+    FreeLinkedList(&g_LabelTable);
+    FreeLinkedList(&g_HostAPICallTable);
+
 }
 
 int LoadSourceFile(char* FileName)
@@ -63,6 +79,7 @@ int LoadSourceFile(char* FileName)
     }
 
     
+    fclose(g_pSourceFile);
     return line;
 }
 void InitInstrTable (){
@@ -943,9 +960,16 @@ void AssmblSourceFile()
 
 }
 
-
-
-
+void PrintText()
+{
+    printf("\n------------------------\n");
+    int i;
+    for(i = 0 ; i < g_iSourceFileLine; i ++)
+    {
+        printf("%s", g_ppstrSourceCode[i]);
+    }
+    printf("------------------------\n");
+}
 void PrintTableInfo()
 {
     int i;
@@ -995,11 +1019,10 @@ void PrintTableInfo()
         printf("OP:%d COUNT:%d\n",g_pInstrStream[i].iOpcode, g_pInstrStream[i].iOpCount);
     }
 }
-char g_pstrExecFilename[10] = "outputfile";
 void BuildXSE ()
 {
-    // ---- Open the output file
 
+    // ---- Open the output file
     FILE * pExecFile;
     if ( ! ( pExecFile = fopen ( g_pstrExecFilename, "wb" ) ) )
         ExitOnError ( "Could not open executable file for output" );
@@ -1237,65 +1260,36 @@ void BuildXSE ()
     fclose ( pExecFile );
 }
 
+
+
 int main(int argc, char * argv [])
 {
-    printf("start:\n------------------------\n");
     if(argc == 1)
     {
         printf("need a file!\n");
         exit(1);
     }
-    g_iSourceFileLine = LoadSourceFile(argv[1]);
 
+    if(argc == 3)
+    {
+        strcpy(g_pstrExecFilename , argv[2]); 
+    }
 
     Init();
-    int i;
-    for(i = 0 ; i < g_iSourceFileLine; i ++)
-    {
-        printf("%s", g_ppstrSourceCode[i]);
-    }
-    printf("------------------------\n"); 
-
-
-
+    g_iSourceFileLine = LoadSourceFile(argv[1]);
     AssmblSourceFile();
-PrintTableInfo();
-BuildXSE();
-
-
-    /*
-    ResetLexer ();
-    while((i = GetNextToken()) != END_OF_TOKEN_STREAM)
-    {
-        printf("%s ", GetCurrLexeme());
-    }
-    */
-
-    /*
-    for(i = 0 ; i < g_iInstrTableLength ; i ++)
-    {
-        printf("%d %d :%s\n",g_InstrTable[i].iOpcode, g_InstrTable[i].iOpCount, g_InstrTable[i].pstrMnemonic);
-    }
-    */
+    PrintTableInfo();
+    BuildXSE();
 
     ShutDown();
     return 0;
 }
 
 
-
-
-
-
-
 //copy from a book
 void Exit ()
 {
-    // Give allocated resources a chance to be freed
 
-    //ShutDown ();
-
-    // Exit the program
     ShutDown();
     exit ( 0 );
 }
@@ -1355,7 +1349,7 @@ void ExitOnCodeError ( char * pstrErrorMssg )
 
     // Print message indicating that the script could not be assembled
 
-//    printf ( "Could not assemble %s.\n", g_pstrExecFilename );
+    printf ( "Could not assemble %s.\n", g_pstrExecFilename );
 
     // Exit the program
 
