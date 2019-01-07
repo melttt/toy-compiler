@@ -14,6 +14,7 @@ SETSTACKSIZE 4096
     ; jububian
     Var Sum
     Mov Sum, X
+    Sqrt Sum
     Add Sum, Y
     ;sfdsf
     Mov _RetVal, Sum
@@ -35,7 +36,7 @@ Func MyFunc
         Mov GlobalArray [ 1 ], "is"
         Mov GlobalArray [ 2 ], "an"
         Mov GlobalArray [ 3 ], "array"
-
+        
         Mov GlobalArray [ 4 ], Str
 }
 

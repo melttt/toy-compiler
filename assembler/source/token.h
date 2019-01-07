@@ -82,6 +82,11 @@
 #define INSTR_PAUSE             31
 #define INSTR_EXIT              32
 
+//new 
+#define INSTR_SQRT              33
+#define INSTR_ROL               34
+#define INSTR_ROR               35
+
 #define INSTR_ATH (OP_FLAG_TYPE_MEM_REF | OP_FLAG_TYPE_REG)
 #define INSTR_ATH2 (OP_FLAG_TYPE_INT | OP_FLAG_TYPE_FLOAT | OP_FLAG_TYPE_STRING | OP_FLAG_TYPE_MEM_REF | OP_FLAG_TYPE_REG)
 #define INSTR_ATH3 (OP_FLAG_TYPE_MEM_REF | OP_FLAG_TYPE_REG | OP_FLAG_TYPE_STRING)
@@ -102,7 +107,9 @@
     ENTRY(CallHost ,INSTR_CALLHOST , OP_FLAG_TYPE_HOST_API_CALL)  \
     ENTRY(Pause ,INSTR_PAUSE , INSTR_ATH2)  \
     ENTRY(Jmp ,INSTR_JMP, OP_FLAG_TYPE_LINE_LABEL)  \
-    ENTRY(Exit ,INSTR_EXIT , INSTR_ATH2)  
+    ENTRY(Exit ,INSTR_EXIT , INSTR_ATH2)            \
+    ENTRY(Sqrt ,INSTR_SQRT , INSTR_ATH)            
+
 
 
 //two op
