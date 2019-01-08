@@ -1,10 +1,64 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 #include "vm.h"
 #include "ds_v.h"
-Script g_Script;
+#include "../../assembler/source/token.h"
 
+char ppstrMnemonics [][ 12 ] = INSTRS_ARRAY;
+void PrintOpIndir ( int iOpIndex )
+{
+    // Get the method of indirection
+    int iIndirMethod = GetOpType ( iOpIndex );
+    // Print it out
+    switch ( iIndirMethod )
+    {
+        // It's _RetVal
+        case OP_TYPE_REG:
+            printf ( "_RetVal" );
+            break;
+            // It's on the stack
+        case OP_TYPE_ABS_STACK_INDEX:
+        case OP_TYPE_REL_STACK_INDEX:
+        {
+            int iStackIndex = ResolveOpStackIndex(iOpIndex);
+            printf ( "[ %d ]", iStackIndex );
+            break;
+        }
+    }
+}
+void PrintOpValue ( int iOpIndex )
+{
+    // Resolve the operand's value
+    Value Op = ResolveOpValue ( iOpIndex );
+    // Print it out
+    switch ( Op.iType )
+    {
+        case OP_TYPE_NULL:
+            printf ( "Null" );
+            break;
+        case OP_TYPE_INT:
+            printf ( "%d", Op.iIntLiteral );
+            break;
+        case OP_TYPE_FLOAT:
+            printf ( "%f", Op.fFloatLiteral );
+            break;
+        case OP_TYPE_STRING:
+            printf ( "\"%s\"", Op.pstrStringLiteral );
+            break;
+        case OP_TYPE_INSTR_INDEX:
+            printf ( "%d", Op.iInstrIndex );
+            break;
+        case OP_TYPE_HOST_API_CALL_INDEX:
+        {
+            char * pstrHostAPICall = ResolveOpAsHostAPICall ( iOpIndex );
+            printf ( "%s", pstrHostAPICall );
+            break;
+        }
+    }
+
+}
 
 int LoadScript ( char * pstrFilename )
 {
@@ -249,6 +303,516 @@ int LoadScript ( char * pstrFilename )
 
     return LOAD_OK;
 }
+
+	/******************************************************************************************
+
+	*
+
+	*	ResetScript ()
+
+	*
+
+	*	Resets the script.
+
+	*/
+
+
+
+void ResetScript ()
+{
+    // Get _Main ()'s function index in case we need it
+    int iMainFuncIndex = g_Script.iMainFuncIndex;
+    // If the function table is present, set the entry point
+    if ( g_Script.pFuncTable )
+    {
+        // If _Main () is present, read _Main ()'s index of the function table to get its
+        // entry point
+        if ( g_Script.iIsMainFuncPresent )
+        {
+            g_Script.InstrStream.iCurrInstr = g_Script.pFuncTable [ iMainFuncIndex ].iEntryPoint;
+        }
+    }
+    // Clear the stack
+    g_Script.Stack.iTopIndex = 0;
+    g_Script.Stack.iFrameIndex = 0;
+    // Set the entire stack to null
+    for ( int iCurrElmntIndex = 0; iCurrElmntIndex < g_Script.Stack.iSize; ++ iCurrElmntIndex )
+        g_Script.Stack.pElmnts [ iCurrElmntIndex ].iType = OP_TYPE_NULL;
+    // Unpause the script
+    g_Script.iIsPaused = FALSE;
+    // Allocate space for the globals
+    PushFrame ( g_Script.iGlobalDataSize );
+    // If _Main () is present, push it's stack frame (plus one extra stack element to
+    // compensate for the function index that usually sits on top of stack frames and
+    // causes indices to start from -2)
+    PushFrame ( g_Script.pFuncTable [ iMainFuncIndex ].iStackFrameSize + 1 );
+}
+
+void RunScript()
+{
+    int iExitExecLoop = FALSE;    
+
+    while(TRUE)
+    {
+        if ( g_Script.iIsPaused )
+        {
+            // Has the pause duration elapsed yet?
+            if ( TRUE )
+            {
+                // Yes, so unpause the script
+                g_Script.iIsPaused = FALSE;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        int iCurrInstr = g_Script.InstrStream.iCurrInstr;
+            // Get the current opcode
+        int iOpcode = g_Script.InstrStream.pInstrs [ iCurrInstr ].iOpcode;
+        if(PRINT_INSTR)
+        {
+            printf ( "\t" );
+            printf ( "%d", iOpcode );
+            printf ( "\t" );
+            printf ( " %s ", ppstrMnemonics [ iOpcode ] );
+        }
+        switch ( iOpcode )
+        {
+            case INSTR_MOV:
+                // Arithmetic Operations
+            case INSTR_ADD:
+            case INSTR_SUB:
+            case INSTR_MUL:
+            case INSTR_DIV:
+            case INSTR_MOD:
+            case INSTR_EXP:
+                // Bitwise Operations
+            case INSTR_AND:
+            case INSTR_OR:
+            case INSTR_XOR:
+            case INSTR_SHL:
+            case INSTR_SHR:
+            {
+                Value Dest = ResolveOpValue ( 0 );         
+                Value Source = ResolveOpValue ( 1 );
+                switch ( iOpcode )
+                {
+                    case INSTR_MOV:
+                        if(ResolveOpPntr ( 0 ) == ResolveOpPntr ( 1 ))
+                            break;
+                        CopyValue(&Dest, Source);
+                        break;
+
+                    case INSTR_ADD:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral += ResolveOpAsInt ( 1 );
+                        else
+                            Dest.fFloatLiteral += ResolveOpAsFloat ( 1 );
+                        break;
+                        // Subtract
+                    case INSTR_SUB:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral -= ResolveOpAsInt ( 1 );
+                        else
+                            Dest.fFloatLiteral -= ResolveOpAsFloat ( 1 );
+                        break;
+                        // Multiply
+                    case INSTR_MUL:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral *= ResolveOpAsInt ( 1 );
+                        else
+                            Dest.fFloatLiteral *= ResolveOpAsFloat ( 1 );
+                        break;
+                        // Divide
+                    case INSTR_DIV:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral /= ResolveOpAsInt ( 1 );
+                        else
+                            Dest.fFloatLiteral /= ResolveOpAsFloat ( 1 );
+                        break;
+                        // Modulus
+                    case INSTR_MOD:
+                        // Remember, Mod works with integers only
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral %= ResolveOpAsInt ( 1 );
+                        break;
+                        // Exponentiate
+                    case INSTR_EXP:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral = ( int ) pow ( Dest.iIntLiteral, ResolveOpAsInt ( 1 ) );
+                        else
+                            Dest.fFloatLiteral = ( float ) pow ( Dest.fFloatLiteral, ResolveOpAsFloat ( 1 ) );
+                        break;
+                        // The bitwise instructions only work with integers. They do nothing
+                        // when the destination data type is anything else.
+                        // And
+                    case INSTR_AND:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral &= ResolveOpAsInt ( 1 );
+                        break;
+                        // Or
+                    case INSTR_OR:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral |= ResolveOpAsInt ( 1 );
+                        break;
+                        // Exclusive Or
+                    case INSTR_XOR:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral ^= ResolveOpAsInt ( 1 );
+                        break;
+                        // Shift Left
+                    case INSTR_SHL:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral <<= ResolveOpAsInt ( 1 );
+                        break;
+                        // Shift Right
+                    case INSTR_SHR:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral >>= ResolveOpAsInt ( 1 );
+                        break;
+                    default:
+                        ;
+                }
+                *ResolveOpPntr ( 0 ) = Dest;
+
+                if(PRINT_INSTR)
+                {
+                    PrintOpIndir ( 0 );
+                    printf ( ", " );
+                    PrintOpValue ( 1 );                    
+                }
+                break;
+            }
+
+            case INSTR_NEG:
+            case INSTR_NOT:
+            case INSTR_INC:
+            case INSTR_DEC:
+            case INSTR_SQRT:
+            {
+                int iDestStoreType = GetOpType ( 0 );
+                Value Dest = ResolveOpValue ( 0 );
+
+                switch ( iOpcode )
+                {
+                    case INSTR_NEG:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral = -Dest.iIntLiteral;
+                        else
+                            Dest.fFloatLiteral = -Dest.fFloatLiteral;
+                        break;
+
+                        // Not
+                    case INSTR_NOT:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            Dest.iIntLiteral = ~ Dest.iIntLiteral;
+                        break;
+                        // Increment
+                    case INSTR_INC:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            ++ Dest.iIntLiteral;
+                        else
+                            ++ Dest.fFloatLiteral;
+                        break;
+                        // Decrement
+                    case INSTR_DEC:
+                        if ( Dest.iType == OP_TYPE_INT )
+                            -- Dest.iIntLiteral;
+                        else
+                            -- Dest.fFloatLiteral;
+                        break;
+                    case INSTR_SQRT:
+                        if(Dest.iType == OP_TYPE_INT)
+                            Dest.iIntLiteral = Dest.iIntLiteral * Dest.iIntLiteral;
+                        else 
+                            Dest.fFloatLiteral = Dest.fFloatLiteral * Dest.fFloatLiteral;
+                    default:
+                        ;
+                }
+                * ResolveOpPntr ( 0 ) = Dest;
+                if(PRINT_INSTR)
+                {
+                    PrintOpIndir ( 0 );
+                }
+                break;
+            }
+
+            case INSTR_CONCAT:
+            {
+                // Get a local copy of the destination operand (operand index 0)
+                Value Dest = ResolveOpValue ( 0 );
+                // Get a local copy of the source string (operand index 1)
+                char * pstrSourceString = ResolveOpAsString ( 1 );
+                // If the destination isn't a string, do nothing
+                if ( Dest.iType != OP_TYPE_STRING )
+                    break;
+                // Determine the length of the new string and allocate space for it (with a
+                // null terminator)
+                int iNewStringLength = strlen ( Dest.pstrStringLiteral ) + strlen ( pstrSourceString );
+                char * pstrNewString = ( char * ) malloc ( iNewStringLength + 1 );
+                // Copy the old string to the new one
+                strcpy ( pstrNewString, Dest.pstrStringLiteral );
+                // Concatenate the destination with the source
+                strcat ( pstrNewString, pstrSourceString );
+                // Free the existing string in the destination structure and replace it
+                // with the new string
+                free ( Dest.pstrStringLiteral );
+
+                //!----------------------maybe bug : no free pstrSourceString----------------------!
+
+                Dest.pstrStringLiteral = pstrNewString;
+                // Copy the concatenated string pointer to its destination
+                * ResolveOpPntr ( 0 ) = Dest;
+                // Print out the operands
+                if(PRINT_INSTR)
+                {
+                    PrintOpIndir ( 0 );
+                    printf ( ", " );
+                    PrintOpValue ( 1 );
+                }
+                break;
+            }
+
+            case INSTR_GETCHAR:
+            {
+                // Get a local copy of the destination operand (operand index 0)
+                Value Dest = ResolveOpValue ( 0 );
+                // Get a local copy of the source string (operand index 1)
+                char * pstrSourceString = ResolveOpAsString ( 1 );
+                // Find out whether or not the destination is already a string
+                char * pstrNewString;
+                if ( Dest.iType == OP_TYPE_STRING )
+                {
+                    // If it is, we can use it's existing string buffer as long as it's at
+                    // least 1 character
+                    if ( strlen ( Dest.pstrStringLiteral ) >= 1 )
+                    {
+                        pstrNewString = Dest.pstrStringLiteral;
+                    }
+                    else
+                    {
+                        free ( Dest.pstrStringLiteral );
+                        pstrNewString = ( char * ) malloc ( 2 );
+                    }
+                }else{
+                    // Otherwise allocate a new string and set the type
+                    pstrNewString = ( char * ) malloc ( 2 );
+                    Dest.iType = OP_TYPE_STRING;
+                }
+                // Get the index of the character (operand index 2)
+                int iSourceIndex = ResolveOpAsInt ( 2 );
+                // Copy the character and append a null-terminator
+                pstrNewString [ 0 ] = pstrSourceString [ iSourceIndex ];
+                pstrNewString [ 1 ] = '\0';
+                // Set the string pointer in the destination Value structure
+                Dest.pstrStringLiteral = pstrNewString;
+                // Copy the concatenated string pointer to its destination
+                * ResolveOpPntr ( 0 ) = Dest;
+                // Print out the operands
+                // ---------------------bug2------------------------------/
+                if(PRINT_INSTR)
+                {
+                    PrintOpIndir ( 0 );
+                    printf ( ", " );
+                    PrintOpValue ( 1 );
+                    printf ( ", " );
+                    PrintOpValue ( 2 );
+                }
+                break;
+
+            }
+
+            case INSTR_SETCHAR:
+                {
+                    // Get the destination index (operand index 2)
+                    int iDestIndex = ResolveOpAsInt ( 2 );
+                    // If the destination isn't a string, do nothing
+                    if ( ResolveOpType ( 0 ) != OP_TYPE_STRING )
+                        break;
+                    // Get the source character (operand index 2)
+                    char * pstrSourceString = ResolveOpAsString ( 1 );
+                    // Set the specified character in the destination (operand index 0)
+                    ResolveOpPntr ( 0 )->pstrStringLiteral [ iDestIndex ] = pstrSourceString [ 0 ];
+                    // Print out the operands
+                    if(PRINT_INSTR)
+                    {
+                        PrintOpIndir ( 0 );
+                        printf ( ", " );
+                        PrintOpValue ( 1 );
+                        printf ( ", " );
+                        PrintOpValue ( 2 );
+                    }
+					break;
+                }
+
+            case INSTR_JMP:
+            {
+                // Get the index of the target instruction (opcode index 0)
+                int iTargetIndex = ResolveOpAsInstrIndex ( 0 );
+                // Move the instruction pointer to the target
+                g_Script.InstrStream.iCurrInstr = iTargetIndex;
+                // Print out the target index
+                PrintOpValue ( 0 );
+                break;
+            }
+
+            case INSTR_JE:
+            case INSTR_JNE:
+            case INSTR_JG:
+            case INSTR_JL:
+            case INSTR_JGE:
+            case INSTR_JLE:
+            {
+                // Get the two operands
+                Value Op0 = ResolveOpValue ( 0 );
+                Value Op1 = ResolveOpValue ( 1 );
+                // Get the index of the target instruction (opcode index 2)
+                int iTargetIndex = ResolveOpAsInstrIndex ( 2 );
+                // Perform the specified comparison and jump if it evaluates to true
+                int iJump = FALSE;
+                switch ( iOpcode )
+                {
+                    // Jump if Equal
+                    case INSTR_JE:
+                        {
+                            switch ( Op0.iType )
+                            {
+                                case OP_TYPE_INT:
+                                    if ( Op0.iIntLiteral == Op1.iIntLiteral )
+                                        iJump = TRUE;
+                                    break;
+                                case OP_TYPE_FLOAT:
+                                    //bug
+                                    if ( Op0.fFloatLiteral == Op1.fFloatLiteral )
+                                        iJump = TRUE;
+                                    break;
+                                case OP_TYPE_STRING:
+                                    if ( strcmp ( Op0.pstrStringLiteral, Op1.pstrStringLiteral ) == 0 )
+                                        iJump = TRUE;
+                                    break;
+                            }
+                            break;
+                        }
+                        // Jump if Not Equal
+                    case INSTR_JNE:
+                        {
+                            switch ( Op0.iType )
+                            {
+                                case OP_TYPE_INT:
+                                    if ( Op0.iIntLiteral != Op1.iIntLiteral )
+                                        iJump = TRUE;
+                                    break;
+                                case OP_TYPE_FLOAT:
+                                    if ( Op0.fFloatLiteral != Op1.fFloatLiteral )
+                                        iJump = TRUE;
+                                    break;
+                                case OP_TYPE_STRING:
+                                    if ( strcmp ( Op0.pstrStringLiteral, Op1.pstrStringLiteral ) != 0 )
+                                        iJump = TRUE;
+                                    break;
+                            }
+
+                            break;
+
+                        }
+
+                        // Jump if Greater
+
+                    case INSTR_JG:
+                        if ( Op0.iType == OP_TYPE_INT )
+                        {
+                            if ( Op0.iIntLiteral > Op1.iIntLiteral )
+                                iJump = TRUE;
+                        }
+                        else
+                        {
+                            if ( Op0.fFloatLiteral > Op1.fFloatLiteral )
+                                iJump = TRUE;
+                        }
+                        break;
+                        // Jump if Less
+                    case INSTR_JL:
+                        if ( Op0.iType == OP_TYPE_INT )
+                        {
+                            if ( Op0.iIntLiteral < Op1.iIntLiteral )
+                                iJump = TRUE;
+                        }
+                        else
+                        {
+                            if ( Op0.fFloatLiteral < Op1.fFloatLiteral )
+                                iJump = TRUE;
+                        }
+                        break;
+                        // Jump if Greater or Equal
+                    case INSTR_JGE:
+                        if ( Op0.iType == OP_TYPE_INT )
+                        {
+                            if ( Op0.iIntLiteral >= Op1.iIntLiteral )
+                                iJump = TRUE;
+                        }
+                        else
+                        {
+                            if ( Op0.fFloatLiteral >= Op1.fFloatLiteral )
+                                iJump = TRUE;
+                        }
+                        break;
+                        // Jump if Less or Equal
+                    case INSTR_JLE:
+                        if ( Op0.iType == OP_TYPE_INT )
+                        {
+                            if ( Op0.iIntLiteral <= Op1.iIntLiteral )
+                                iJump = TRUE;
+                        }
+                        else
+                        {
+                            if ( Op0.fFloatLiteral <= Op1.fFloatLiteral )
+                                iJump = TRUE;
+                        }
+                        break;
+                }
+                // Print out the operands
+                if(PRINT_INSTR)
+                {
+                    PrintOpValue ( 0 );
+                    printf ( ", " );
+                    PrintOpValue ( 1 );
+                    printf ( ", " );
+                    PrintOpValue ( 2 );
+                    printf ( " " );
+                }
+                // If the comparison evaluated to TRUE, make the jump
+                if ( iJump )
+                {
+                    g_Script.InstrStream.iCurrInstr = iTargetIndex;
+                    if(PRINT_INSTR)
+                        printf ( "(True)" );
+                }
+                else
+                {
+                    if(PRINT_INSTR)
+                    printf ( "(False)" );
+                    
+                }
+                break;                
+            }
+
+
+            default:
+                ;
+            
+
+        }
+
+
+
+
+    }
+
+
+}
+
 
 int main(int argc, char * argv [])
 {

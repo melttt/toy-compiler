@@ -15,6 +15,16 @@
 // CallHost)
 #define OP_FLAG_TYPE_REG        128         // Register
 // next state is LEXEME_STATE_NOSTRING
+#define INSTRS_ARRAY         {    \
+            "Mov",              \
+            "Add", "Sub", "Mul", "Div", "Mod", "Exp", "Neg", "Inc", "Dec",\
+            "And", "Or", "XOr", "Not", "ShL", "ShR",    \
+            "Concat", "GetChar", "SetChar",     \
+            "Jmp", "JE", "JNE", "JG", "JL", "JGE", "JLE",   \
+            "Push", "Pop",  \
+            "Call", "Ret", "CallHost",  \
+            "Pause", "Exit" , "Sqrt"         \
+        }
 
 #define TOKEN_TYPE_INT              0           // An integer literal
 #define TOKEN_TYPE_FLOAT            1           // An floating-point literal

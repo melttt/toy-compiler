@@ -1,10 +1,14 @@
 #ifndef DS_V_H
 #define DS_V_H
 
+#define MAX_COERCION_STRING_SIZE    65
 
+
+#define OP_TYPE_NULL                -1
 #define OP_TYPE_INT                 0           // Integer literal value
 #define OP_TYPE_FLOAT               1           // Floating-point literal value
 #define OP_TYPE_STRING_INDEX        2           // String literal value
+#define OP_TYPE_STRING              2           // String literal value
 #define OP_TYPE_ABS_STACK_INDEX     3           // Absolute array index
 #define OP_TYPE_REL_STACK_INDEX     4           // Relative array index
 #define OP_TYPE_INSTR_INDEX         5           // Instruction index
@@ -101,13 +105,55 @@ typedef struct _Script							// Encapsulates a full script
 }Script;
 
 
+// ---- Macros --------------------------------------------------------------------------------
+/******************************************************************************************
+ *
+ *	ResolveStackIndex ()
+ *
+ *	Resolves a stack index by translating negative indices relative to the top of the
+ *	stack, to positive ones relative to the bottom.
+ */
+#define ResolveStackIndex( iIndex )	\
+    ( iIndex < 0 ? iIndex += g_Script.Stack.iFrameIndex : iIndex )  
 
 
+extern Script g_Script;
 
 
+int CoerceValueToInt ( Value Val );
+float CoerceValueToFloat ( Value Val );
+char * CoerceValueToString ( Value Val );
+
+void CopyValue ( Value * pDest, Value Source );
+
+int GetOpType ( int iOpIndex );
+int ResolveOpType ( int iOpIndex );
+
+int ResolveOpStackIndex ( int iOpIndex );
+Value ResolveOpValue ( int iOpIndex );
+int ResolveOpAsInt ( int iOpIndex );
+float ResolveOpAsFloat ( int iOpIndex );
+char * ResolveOpAsString ( int iOpIndex );
+int ResolveOpAsInstrIndex ( int iOpIndex );
+int ResolveOpAsFuncIndex ( int iOpIndex );
+char * ResolveOpAsHostAPICall ( int iOpIndex );
+Value * ResolveOpPntr ( int iOpIndex );
 
 
+// ---- Runtime Stack Interface -----------------------------------------------------------
 
+
+Value GetStackValue ( int iIndex );
+void SetStackValue ( int iIndex, Value Val );
+void Push ( Value Val );
+Value Pop ();
+void PushFrame ( int iSize );
+void PopFrame ( int iSize );
+
+// ---- Function Table Interface ----------------------------------------------------------
+Func GetFunc ( int iIndex );
+// ---- Host API Call Table Interface -----------------------------------------------------
+char * GetHostAPICall ( int iIndex );
 
 
 #endif

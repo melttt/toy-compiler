@@ -1,6 +1,14 @@
 #ifndef _VM_H
 #define _VM_H
 
+#define PRINT_INSTR 1
+#ifndef TRUE
+    #define TRUE                    1           // True
+#endif
+
+#ifndef FALSE
+    #define FALSE                   0           // False
+#endif
 // ---- LoadScript () Error Codes ---------------------------------------------------------
 
 #define LOAD_OK						0			// Load successful
