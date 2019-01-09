@@ -192,7 +192,9 @@ char * CoerceValueToString ( Value Val )
 {
     char * pstrCoercion;
     if ( Val.iType != OP_TYPE_STRING )
+    {
         pstrCoercion = ( char * ) malloc ( MAX_COERCION_STRING_SIZE + 1 );
+    }
     // Determine which type the Value currently is
     switch ( Val.iType )
     {

@@ -8,6 +8,7 @@
 #include "../../assembler/source/token.h"
 
 char ppstrMnemonics [][ 12 ] = INSTRS_ARRAY;
+char *point = NULL;
 void PrintOpIndir ( int iOpIndex )
 {
     // Get the method of indirection
@@ -58,8 +59,8 @@ void PrintOpValue ( int iOpIndex )
             break;
         }
     }
-
 }
+
 
 int LoadScript ( char * pstrFilename )
 {
@@ -122,6 +123,7 @@ int LoadScript ( char * pstrFilename )
         for(iCurrOpIndex = 0; iCurrOpIndex < iOpCount; ++ iCurrOpIndex )
         {
             pOpList [ iCurrOpIndex ].iType = 0;
+            pOpList [ iCurrOpIndex ]. pstrStringLiteral = NULL;
             fread ( & pOpList [ iCurrOpIndex ].iType, 1, 1, pScriptFile );
             switch ( pOpList [ iCurrOpIndex ].iType )
             {
@@ -212,7 +214,6 @@ int LoadScript ( char * pstrFilename )
                 // string in the table
                 if ( pOpList [ iCurrOpIndex ].iType == OP_TYPE_STRING_INDEX )
                 {
-
                     // Get the string index from the operand's integer literal field
                     int iStringIndex = pOpList [ iCurrOpIndex ].iIntLiteral;
                     // Allocate a new string to hold a copy of the one in the table
@@ -241,7 +242,6 @@ int LoadScript ( char * pstrFilename )
     fread ( & iFuncTableSize, 4, 1, pScriptFile );
     // Allocate the table
     g_Script.pFuncTable = ( Func * ) malloc ( iFuncTableSize * sizeof ( Func ) );
-    printf("table size %d\n", iFuncTableSize);
 
 
     int iCurrFuncIndex;
@@ -548,8 +548,10 @@ int RunScript()
                 // Concatenate the destination with the source
                 strcat ( pstrNewString, pstrSourceString );
                 // Free the existing string in the destination structure and replace it
+
                 // with the new string
                 free ( Dest.pstrStringLiteral );
+                point = pstrSourceString;
 
                 //!----------------------maybe bug : no free pstrSourceString----------------------!
 
@@ -928,15 +930,19 @@ void ShutDown ()
     // ---- Free The instruction stream
     // First check to see if any instructions have string operands, and free them if they
     // do
-    for(int iCurrInstrIndex = 0; iCurrInstrIndex < g_Script.InstrStream.iSize; ++ iCurrInstrIndex )
+    int iCurrInstrIndex;
+    int iCurrOpIndex;
+    for(iCurrInstrIndex = 0; iCurrInstrIndex < g_Script.InstrStream.iSize; ++ iCurrInstrIndex )
     {
         // Make a local copy of the operand count and operand list
         int iOpCount = g_Script.InstrStream.pInstrs [ iCurrInstrIndex ].iOpCount;
         Value * pOpList = g_Script.InstrStream.pInstrs [ iCurrInstrIndex ].pOpList;
         // Loop through each operand and free its string pointer
-        for ( int iCurrOpIndex = 0; iCurrOpIndex < iOpCount; ++ iCurrOpIndex )
-            if ( pOpList [ iCurrOpIndex ].pstrStringLiteral )
+        for ( iCurrOpIndex = 0; iCurrOpIndex < iOpCount; ++ iCurrOpIndex )
+            if (pOpList [ iCurrOpIndex ].iType == OP_TYPE_STRING && pOpList [ iCurrOpIndex ].pstrStringLiteral )
+            {
                 free(pOpList [ iCurrOpIndex ].pstrStringLiteral);
+            }
     }
 
     // Now free the stream itself
@@ -993,5 +999,6 @@ int main(int argc, char * argv [])
     ResetScript();
     RunScript();
     ShutDown();
+
     return 0;
 }
