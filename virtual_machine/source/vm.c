@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <unistd.h>
 #include "vm.h"
 #include "ds_v.h"
 #include "../../assembler/source/token.h"
@@ -240,6 +241,7 @@ int LoadScript ( char * pstrFilename )
     fread ( & iFuncTableSize, 4, 1, pScriptFile );
     // Allocate the table
     g_Script.pFuncTable = ( Func * ) malloc ( iFuncTableSize * sizeof ( Func ) );
+    printf("table size %d\n", iFuncTableSize);
 
 
     int iCurrFuncIndex;
@@ -346,27 +348,16 @@ void ResetScript ()
     // compensate for the function index that usually sits on top of stack frames and
     // causes indices to start from -2)
     PushFrame ( g_Script.pFuncTable [ iMainFuncIndex ].iStackFrameSize + 1 );
+
 }
 
-void RunScript()
+int RunScript()
 {
     int iExitExecLoop = FALSE;    
+    int iExitCode;
 
     while(TRUE)
     {
-        if ( g_Script.iIsPaused )
-        {
-            // Has the pause duration elapsed yet?
-            if ( TRUE )
-            {
-                // Yes, so unpause the script
-                g_Script.iIsPaused = FALSE;
-            }
-            else
-            {
-                continue;
-            }
-        }
 
         int iCurrInstr = g_Script.InstrStream.iCurrInstr;
             // Get the current opcode
@@ -374,7 +365,7 @@ void RunScript()
         if(PRINT_INSTR)
         {
             printf ( "\t" );
-            printf ( "%d", iOpcode );
+            printf ( "%d", iCurrInstr);
             printf ( "\t" );
             printf ( " %s ", ppstrMnemonics [ iOpcode ] );
         }
@@ -798,21 +789,193 @@ void RunScript()
                 break;                
             }
 
+                // ---- The Stack Interface
+				case INSTR_PUSH:
+                {
+                    // Get a local copy of the source operand (operand index 0)
+                    Value Source = ResolveOpValue ( 0 );
+                    // Push the value onto the stack
+                    //maybe bug
+                    Push ( Source );
+                    // Print the source
+                    if(PRINT_INSTR)
+                        PrintOpValue ( 0 );
+                    break;
+                }
+				case INSTR_POP:
+                {
+                    // Pop the top of the stack into the destination
+                    //maybe bug
+                    * ResolveOpPntr ( 0 ) = Pop ();
+                    // Print the destination
+                    if(PRINT_INSTR)
+                        PrintOpIndir ( 0 );
+					break;
+                }
 
-            default:
-                ;
+                case INSTR_CALL:
+
+                {
+
+                    // Get a local copy of the function index (operand index 0) and function
+                    // structure
+                    int iFuncIndex = ResolveOpAsFuncIndex ( 0 );
+                    Func Dest = GetFunc ( iFuncIndex );
+                    // Push the return address which is the instruction just beyond the current
+                    // one
+                    Value ReturnAddr;
+                    ReturnAddr.iInstrIndex = g_Script.InstrStream.iCurrInstr + 1;
+                    Push ( ReturnAddr );
+                    // Push the stack frame + 1 (the extra space is for the function index
+                    // we'll put on the stack after it
+                    PushFrame ( Dest.iLocalDataSize + 1 );
+                    // Write the function index to the top of the stack
+                    Value FuncIndex;
+                    FuncIndex.iFuncIndex = iFuncIndex;
+                    SetStackValue ( g_Script.Stack.iTopIndex - 1, FuncIndex );
+                    // Make the jump to the function's entry point
+                    g_Script.InstrStream.iCurrInstr = Dest.iEntryPoint;
+                    if(PRINT_INSTR)
+                    {
+                        printf ( "$$[%d]$$", g_Script.InstrStream.iCurrInstr );
+                        // Print out some information
+                        printf ( "%d ( Entry Point: %d, Frame Size: %d )", iFuncIndex, Dest.iEntryPoint, Dest.iStackFrameSize );
+                    }
+					break;
+                }
+                case INSTR_RET:
+                {
+                    // Get the current function index off the top of the stack and use it to get
+                    // the corresponding function structure
+                    Value FuncIndex = Pop ();
+                    Func CurrFunc = GetFunc ( FuncIndex.iFuncIndex );
+                    int iFrameIndex = FuncIndex.iOffsetIndex;
+                    // Read the return address structure from the stack, which is stored one
+                    // index below the local data
+                    Value ReturnAddr = GetStackValue ( g_Script.Stack.iTopIndex - ( CurrFunc.iLocalDataSize + 1 ) );
+                    // Pop the stack frame along with the return address
+                    PopFrame ( CurrFunc.iStackFrameSize );
+                    // Restore the previous frame index
+                    g_Script.Stack.iFrameIndex = iFrameIndex;
+                    // Make the jump to the return address
+                    g_Script.InstrStream.iCurrInstr = ReturnAddr.iInstrIndex;
+                    // Print the return address
+                    if(PRINT_INSTR)
+                        printf ( "%d", ReturnAddr.iInstrIndex );
+					break;
+                }
+
+                case INSTR_CALLHOST:
+                {
+                    // CallHost is not implemented in this prototype, so just print out the
+                    // name of the function
+                    PrintOpValue ( 0 );
+					break;
+                }
+
+
+                case INSTR_PAUSE:
+                {
+                    // Get the pause duration
+                    int iPauseDuration = ResolveOpAsInt ( 0 );
+                    // Determine the ending pause time
+                    sleep(iPauseDuration);
+                    // Print the pause duration
+                    if(PRINT_INSTR)
+                        PrintOpValue ( 0 );
+					break;
+                }
+
+                case INSTR_EXIT:
+                {
+
+                    iExitCode = ResolveOpValue ( 0 ).iIntLiteral;
+                    // Break the execution cycle
+                    iExitExecLoop = TRUE;
+                    // Print the exit code
+                    if(PRINT_INSTR)
+                        PrintOpValue ( 0 );
+                    break;
+
+
+                }
+                // Resolve operand zero to find the exit code
+
+                default:
+                    if(PRINT_INSTR)
+                        printf("UNKNOW OPCODE : %d\n exiting...", iOpcode);
+                    iExitExecLoop = TRUE;
+                    iExitCode = 1;
             
 
         }
+        if(PRINT_INSTR)
+            printf ( "\n" );
 
 
+        if ( iCurrInstr == g_Script.InstrStream.iCurrInstr )
+            ++ g_Script.InstrStream.iCurrInstr;
 
+        if ( iExitExecLoop )
+            break;
 
     }
-
-
+    return iExitCode;
 }
 
+void ShutDown ()
+{
+    // ---- Free The instruction stream
+    // First check to see if any instructions have string operands, and free them if they
+    // do
+    for(int iCurrInstrIndex = 0; iCurrInstrIndex < g_Script.InstrStream.iSize; ++ iCurrInstrIndex )
+    {
+        // Make a local copy of the operand count and operand list
+        int iOpCount = g_Script.InstrStream.pInstrs [ iCurrInstrIndex ].iOpCount;
+        Value * pOpList = g_Script.InstrStream.pInstrs [ iCurrInstrIndex ].pOpList;
+        // Loop through each operand and free its string pointer
+        for ( int iCurrOpIndex = 0; iCurrOpIndex < iOpCount; ++ iCurrOpIndex )
+            if ( pOpList [ iCurrOpIndex ].pstrStringLiteral )
+                free(pOpList [ iCurrOpIndex ].pstrStringLiteral);
+    }
+
+    // Now free the stream itself
+    if ( g_Script.InstrStream.pInstrs )
+        free ( g_Script.InstrStream.pInstrs );
+    // ---- Free the runtime stack
+
+    // Free any strings that are still on the stack
+
+
+    for ( int iCurrElmtnIndex = 0; iCurrElmtnIndex < g_Script.Stack.iSize; ++ iCurrElmtnIndex )
+        if ( g_Script.Stack.pElmnts [ iCurrElmtnIndex ].iType == OP_TYPE_STRING )
+            free ( g_Script.Stack.pElmnts [ iCurrElmtnIndex ].pstrStringLiteral );
+    // Now free the stack itself
+    if ( g_Script.Stack.pElmnts )
+        free ( g_Script.Stack.pElmnts );
+    // ---- Free the function table
+    if ( g_Script.pFuncTable )
+        free ( g_Script.pFuncTable );
+    // --- Free the host API call table
+    // First free each string in the table individually
+    for ( int iCurrCallIndex = 0; iCurrCallIndex < g_Script.HostAPICallTable.iSize; ++ iCurrCallIndex )
+        if ( g_Script.HostAPICallTable.ppstrCalls [ iCurrCallIndex ] )
+            free ( g_Script.HostAPICallTable.ppstrCalls [ iCurrCallIndex ] );
+    // Now free the table itself
+    if ( g_Script.HostAPICallTable.ppstrCalls )
+        free ( g_Script.HostAPICallTable.ppstrCalls );
+
+}
+void Init ()
+{
+    // ---- Initialize the script structure
+    g_Script.iIsMainFuncPresent = FALSE;
+    g_Script.iIsPaused = FALSE;
+    g_Script.InstrStream.pInstrs = NULL;
+    g_Script.Stack.pElmnts = NULL;
+    g_Script.pFuncTable = NULL;
+    g_Script.HostAPICallTable.ppstrCalls = NULL;
+}
 
 int main(int argc, char * argv [])
 {
@@ -824,12 +987,11 @@ int main(int argc, char * argv [])
     }
     int i;
 
+    Init();
     if((i = LoadScript(argv[1])) != LOAD_OK)
         printf("wrong! id:%d\n ",i);
-
-
-
-
-
+    ResetScript();
+    RunScript();
+    ShutDown();
     return 0;
 }
