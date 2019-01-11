@@ -563,9 +563,14 @@ int RunScript()
 
                 // with the new string
                 free ( Dest.pstrStringLiteral );
+                //!----------------------maybe bug : no free pstrSourceString----------------------!
+                if(ResolveOpValue(1).iType != OP_TYPE_STRING)
+                {
+                    free(pstrSourceString);
+                }
+                //----------------------fix bug----------------------------------//
                 point = pstrSourceString;
 
-                //!----------------------maybe bug : no free pstrSourceString----------------------!
 
                 Dest.pstrStringLiteral = pstrNewString;
                 // Copy the concatenated string pointer to its destination
@@ -616,7 +621,6 @@ int RunScript()
                 // Copy the concatenated string pointer to its destination
                 * ResolveOpPntr ( 0 ) = Dest;
                 // Print out the operands
-                // ---------------------bug2------------------------------/
                 if(PRINT_INSTR)
                 {
                     PrintOpIndir ( 0 );
@@ -690,8 +694,9 @@ int RunScript()
                                     break;
                                 case OP_TYPE_FLOAT:
                                     //bug
-                                    if ( Op0.fFloatLiteral == Op1.fFloatLiteral )
+                                    if ( fabs(Op0.fFloatLiteral -Op1.fFloatLiteral) <= ESP)
                                         iJump = TRUE;
+                                    //bug fix
                                     break;
                                 case OP_TYPE_STRING:
                                     if ( strcmp ( Op0.pstrStringLiteral, Op1.pstrStringLiteral ) == 0 )
@@ -807,10 +812,13 @@ int RunScript()
 				case INSTR_PUSH:
                 {
                     // Get a local copy of the source operand (operand index 0)
-                    Value Source = ResolveOpValue ( 0 );
+
+                    //bug about string
+                    Value Source;
+                    CopyValue(&Source, ResolveOpValue ( 0 ));
                     // Push the value onto the stack
-                    //maybe bug
                     Push ( Source );
+                    //fix bug
                     // Print the source
                     if(PRINT_INSTR)
                         PrintOpValue ( 0 );
@@ -821,6 +829,7 @@ int RunScript()
                     // Pop the top of the stack into the destination
                     //maybe bug
                     * ResolveOpPntr ( 0 ) = Pop ();
+                    // no bug
                     // Print the destination
                     if(PRINT_INSTR)
                         PrintOpIndir ( 0 );

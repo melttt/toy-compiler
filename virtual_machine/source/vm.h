@@ -1,6 +1,7 @@
 #ifndef _VM_H
 #define _VM_H
 
+#define ESP 0.000001
 #define PRINT_INSTR 1
 #ifndef TRUE
     #define TRUE                    1           // True

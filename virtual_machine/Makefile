@@ -11,7 +11,7 @@ r : vm $(TEST_INPUT_FILE)
 	./vm $(TEST_INPUT_FILE)
 
 test :
-	valgrind --tool=memcheck  --leak-check=yes  --log-file=./txt ./vm ../assembler/xas.out
+	valgrind --tool=memcheck  --leak-check=full  --show-leak-kinds=all --log-file=./txt ./vm ../assembler/xas.out
 clean: 
 	rm -f ./vm ./txt
 
