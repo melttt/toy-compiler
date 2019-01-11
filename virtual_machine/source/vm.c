@@ -7,9 +7,9 @@
 #include "ds_v.h"
 #include "../../assembler/source/token.h"
 
-char ppstrMnemonics [][ 12 ] = INSTRS_ARRAY;
+char ppstrMnemonics [][12] = INSTRS_ARRAY;
 char *point = NULL;
-void PrintOpIndir ( int iOpIndex )
+void PrintOpIndir (int iOpIndex)
 {
     // Get the method of indirection
     int iIndirMethod = GetOpType ( iOpIndex );
@@ -66,11 +66,14 @@ int LoadScript ( char * pstrFilename )
 {
     FILE* pScriptFile;
     char pstrIDString[5];
+    int i;
     if(!(pScriptFile = fopen(pstrFilename, "rb")))
         return LOAD_ERROR_FILE_IO;
 
 
+    memset(pstrIDString, 0 ,sizeof(pstrIDString));
     fread(pstrIDString ,4 ,1 ,pScriptFile);
+    pstrIDString[4] = '\0';
 
     if(strcmp(pstrIDString, XSE_ID_STRING))
         return LOAD_ERROR_INVALID_XSE;
@@ -91,6 +94,13 @@ int LoadScript ( char * pstrFilename )
         g_Script.Stack.iSize = DEF_STACK_SIZE;
 
     g_Script.Stack.pElmnts = ( Value * ) malloc( g_Script.Stack.iSize * sizeof ( Value ));
+    for(i = 0 ; i < g_Script.Stack.iSize ; i ++)
+    {
+        g_Script.Stack.pElmnts[i].iType =  OP_TYPE_NULL;
+        g_Script.Stack.pElmnts[i].pstrStringLiteral = NULL;
+        g_Script.Stack.pElmnts[i].iOffsetIndex = 0;
+
+    }
 
     // Read the global data size (4 bytes)
     fread ( & g_Script.iGlobalDataSize, 4, 1, pScriptFile );
@@ -116,9 +126,11 @@ int LoadScript ( char * pstrFilename )
 
         int iOpCount = g_Script.InstrStream.pInstrs [ iCurrInstrIndex ].iOpCount;
 		// Allocate space for the operand list in a temporary pointer
-		Value * pOpList = ( Value * ) malloc ( iOpCount * sizeof ( Value ) );
 
-
+        Value * pOpList = NULL;
+        if(iOpCount > 0)
+		     pOpList = ( Value * ) malloc ( iOpCount * sizeof ( Value ) );
+    
         int iCurrOpIndex;
         for(iCurrOpIndex = 0; iCurrOpIndex < iOpCount; ++ iCurrOpIndex )
         {
@@ -318,8 +330,6 @@ int LoadScript ( char * pstrFilename )
 
 	*/
 
-
-
 void ResetScript ()
 {
     // Get _Main ()'s function index in case we need it
@@ -466,7 +476,9 @@ int RunScript()
                     default:
                         ;
                 }
-                *ResolveOpPntr ( 0 ) = Dest;
+                Value *_tmp = ResolveOpPntr ( 0 );
+                if(_tmp )
+                 *_tmp = Dest;
 
                 if(PRINT_INSTR)
                 {
@@ -822,11 +834,14 @@ int RunScript()
                     // Get a local copy of the function index (operand index 0) and function
                     // structure
                     int iFuncIndex = ResolveOpAsFuncIndex ( 0 );
+                    int iFrameIndex = g_Script.Stack.iFrameIndex;
                     Func Dest = GetFunc ( iFuncIndex );
                     // Push the return address which is the instruction just beyond the current
                     // one
                     Value ReturnAddr;
+                    ReturnAddr.iType = OP_TYPE_INSTR_INDEX;
                     ReturnAddr.iInstrIndex = g_Script.InstrStream.iCurrInstr + 1;
+
                     Push ( ReturnAddr );
                     // Push the stack frame + 1 (the extra space is for the function index
                     // we'll put on the stack after it
@@ -834,6 +849,7 @@ int RunScript()
                     // Write the function index to the top of the stack
                     Value FuncIndex;
                     FuncIndex.iFuncIndex = iFuncIndex;
+                    FuncIndex.iOffsetIndex = iFrameIndex;
                     SetStackValue ( g_Script.Stack.iTopIndex - 1, FuncIndex );
                     // Make the jump to the function's entry point
                     g_Script.InstrStream.iCurrInstr = Dest.iEntryPoint;
@@ -939,10 +955,14 @@ void ShutDown ()
         Value * pOpList = g_Script.InstrStream.pInstrs [ iCurrInstrIndex ].pOpList;
         // Loop through each operand and free its string pointer
         for ( iCurrOpIndex = 0; iCurrOpIndex < iOpCount; ++ iCurrOpIndex )
+        {
             if (pOpList [ iCurrOpIndex ].iType == OP_TYPE_STRING && pOpList [ iCurrOpIndex ].pstrStringLiteral )
             {
                 free(pOpList [ iCurrOpIndex ].pstrStringLiteral);
             }
+
+        }
+        free(pOpList);
     }
 
     // Now free the stream itself
@@ -991,7 +1011,7 @@ int main(int argc, char * argv [])
         printf("need a file!\n");
         exit(0);
     }
-    int i;
+    int i = 0;
 
     Init();
     if((i = LoadScript(argv[1])) != LOAD_OK)

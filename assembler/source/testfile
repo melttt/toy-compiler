@@ -36,9 +36,9 @@ Func MyFunc
         Mov GlobalArray [ 1 ], "is"
         Mov GlobalArray [ 2 ], "an"
         Mov GlobalArray [ 3 ], "array"
-        Concat GlobalArray [ 3 ], 213
-        Mov GlobalArray [ 4 ], Str
-        Mov GlobalArray [ 5 ], GlobalArray [ 3 ]
+;        Concat GlobalArray [ 3 ], 213
+;        Mov GlobalArray [ 4 ], Str
+;        Mov GlobalArray [ 5 ], GlobalArray [ 3 ]
 }
 
 

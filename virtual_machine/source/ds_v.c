@@ -11,7 +11,6 @@ Script g_Script;
  *
  *	Returns the type of the specified operand in the current instruction.
 */
-
 int GetOpType ( int iOpIndex )
 {
     // Get the current instruction
@@ -19,7 +18,6 @@ int GetOpType ( int iOpIndex )
     // Return the type
     return g_Script.InstrStream.pInstrs [ iCurrInstr ].pOpList [ iOpIndex ].iType;
 }
-
 
 int ResolveOpType ( int iOpIndex )
 {
@@ -302,17 +300,22 @@ void CopyValue ( Value * pDest, Value Source )
 {
     // If the destination already contains a string, make sure to free it first
     if ( pDest->iType == OP_TYPE_STRING )
-        free ( pDest->pstrStringLiteral );
+    {
+        free(pDest->pstrStringLiteral );
+        pDest->pstrStringLiteral = NULL;
+    }
     // Copy the object
-    * pDest = Source;
+    *pDest = Source;
     // Make a physical copy of the source string, if necessary
     if ( Source.iType == OP_TYPE_STRING )
     {
         pDest->pstrStringLiteral = ( char * ) malloc ( strlen ( Source.pstrStringLiteral ) + 1 );
         strcpy ( pDest->pstrStringLiteral, Source.pstrStringLiteral );
+
     }
 
 }
+
 Value Pop ()
 {
     // Decrement the top index to clear the old element for overwriting
@@ -321,6 +324,7 @@ Value Pop ()
     int iTopIndex = g_Script.Stack.iTopIndex;
     // Use this index to read the top element
     Value Val;
+    Val.iType = OP_TYPE_NULL;
     CopyValue ( & Val, g_Script.Stack.pElmnts [ iTopIndex ] );
     // Return the value to the caller
     return Val;
