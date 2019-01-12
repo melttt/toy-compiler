@@ -814,11 +814,10 @@ int RunScript()
                     // Get a local copy of the source operand (operand index 0)
 
                     //bug about string
-                    Value Source;
-                    CopyValue(&Source, ResolveOpValue ( 0 ));
                     // Push the value onto the stack
-                    Push ( Source );
-                    //fix bug
+                    Push (ResolveOpValue ( 0 ));
+                    //no bug
+
                     // Print the source
                     if(PRINT_INSTR)
                         PrintOpValue ( 0 );
@@ -857,6 +856,7 @@ int RunScript()
                     PushFrame ( Dest.iLocalDataSize + 1 );
                     // Write the function index to the top of the stack
                     Value FuncIndex;
+                    FuncIndex.iType = OP_TYPE_NULL;
                     FuncIndex.iFuncIndex = iFuncIndex;
                     FuncIndex.iOffsetIndex = iFrameIndex;
                     SetStackValue ( g_Script.Stack.iTopIndex - 1, FuncIndex );
@@ -896,7 +896,19 @@ int RunScript()
                 {
                     // CallHost is not implemented in this prototype, so just print out the
                     // name of the function
+                    int i;
                     PrintOpValue ( 0 );
+                                           
+                    for(i = 0 ; i < g_Script.HostAPICallTable.iFuncNum ;  i ++) 
+                    {
+                        if(strcmp(ResolveOpAsHostAPICall(0), g_Script.HostAPICallTable.ptrHostFuncTable[i].ptrFuncName) == 0)
+                        {
+                            g_Script.HostAPICallTable.ptrHostFuncTable[i].fHostfunc();
+                        }
+                        
+                    }
+
+
 					break;
                 }
 
@@ -1000,6 +1012,26 @@ void ShutDown ()
     if ( g_Script.HostAPICallTable.ppstrCalls )
         free ( g_Script.HostAPICallTable.ppstrCalls );
 
+
+    //free HostFuncTable
+    int i;
+    for(i = 0 ; i < g_Script.HostAPICallTable.iFuncNum ;  i ++) 
+    {
+        free(g_Script.HostAPICallTable.ptrHostFuncTable[i].ptrFuncName);
+    }
+
+}
+
+void PrintStr()
+{
+    char *ch = GetParamAsString(0);
+
+    printf("\n%s\n", ch); 
+
+    if(GetParamAsValue(0).iType != OP_TYPE_STRING) 
+        free(ch);
+
+    ReturnStringFromHost("ret_str", 1);
 }
 void Init ()
 {
@@ -1010,6 +1042,14 @@ void Init ()
     g_Script.Stack.pElmnts = NULL;
     g_Script.pFuncTable = NULL;
     g_Script.HostAPICallTable.ppstrCalls = NULL;
+
+    g_Script.HostAPICallTable.iFuncNum = 0;
+
+
+    memset(g_Script.HostAPICallTable.ptrHostFuncTable, 0 ,sizeof(g_Script.HostAPICallTable.ptrHostFuncTable));
+    g_Script.HostAPICallTable.iFuncNum = 0;
+    RegisterHostFunc("PrintStr", 1, PrintStr);
+    
 }
 
 int main(int argc, char * argv [])

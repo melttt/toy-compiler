@@ -5,6 +5,15 @@
 #include "../../assembler/source/token.h"
 Script g_Script;
 
+void _strupr(char *str)
+{
+    while(*str != 0)
+    {
+        if(*str >= 'a' && *str <= 'z')
+            *str -= 32;
+        str ++;
+    }
+}
 /******************************************************************************************
  *
  *	GetOpType ()
@@ -277,6 +286,72 @@ char * ResolveOpAsHostAPICall ( int iOpIndex )
     return GetHostAPICall ( iHostAPICallIndex );
 }
 
+int RegisterHostFunc(char *ptrName, int iCount,func ptrFunc )
+{
+    HostFunc *table = g_Script.HostAPICallTable.ptrHostFuncTable;
+    if(g_Script.HostAPICallTable.iFuncNum >= MAXHOSTFUNC)
+        return -1;
+    printf("table index;%d\n", g_Script.HostAPICallTable.iFuncNum);
+    printf("p;%p\n",table[g_Script.HostAPICallTable.iFuncNum].ptrFuncName );
+    table[g_Script.HostAPICallTable.iFuncNum].fHostfunc = ptrFunc;
+    table[g_Script.HostAPICallTable.iFuncNum].iParamCount = iCount;
+    table[g_Script.HostAPICallTable.iFuncNum].ptrFuncName = (char*)malloc(strlen(ptrName) + 1);
+    strcpy(table[g_Script.HostAPICallTable.iFuncNum].ptrFuncName, ptrName);
+    _strupr(table[g_Script.HostAPICallTable.iFuncNum].ptrFuncName);
+    return g_Script.HostAPICallTable.iFuncNum ++;
+}
+
+int GetParamAsInt(int iParamIndex)
+{
+    int iTopIndex = g_Script.Stack.iTopIndex;
+    Value Param = g_Script.Stack.pElmnts[iTopIndex - (iParamIndex + 1)];
+    return CoerceValueToInt(Param);
+}
+
+int GetParamAsFloat(int iParamIndex)
+{
+    int iTopIndex = g_Script.Stack.iTopIndex;
+    Value Param = g_Script.Stack.pElmnts[iTopIndex - (iParamIndex + 1)];
+    return CoerceValueToFloat(Param);
+}
+
+char*  GetParamAsString(int iParamIndex)
+{
+    int iTopIndex = g_Script.Stack.iTopIndex;
+    Value Param = g_Script.Stack.pElmnts[iTopIndex - (iParamIndex + 1)];
+    return CoerceValueToString(Param);
+}
+
+Value GetParamAsValue(int iParamIndex)
+{
+    int iTopIndex = g_Script.Stack.iTopIndex;
+    return  g_Script.Stack.pElmnts[iTopIndex - (iParamIndex + 1)];
+}
+
+
+int ReturnIntFromHost(int iRet, int iParamCount)
+{
+    g_Script.Stack.iTopIndex -= iParamCount;
+    g_Script._RetVal.iType = OP_TYPE_INT;
+    g_Script._RetVal.iIntLiteral = iRet;
+}
+
+int ReturnFloatFromHost(int iRet, int iParamCount)
+{
+    g_Script.Stack.iTopIndex -= iParamCount;
+    g_Script._RetVal.iType = OP_TYPE_FLOAT;
+    g_Script._RetVal.fFloatLiteral = iRet;
+}
+int ReturnStringFromHost(char* ch, int iParamCount)
+{
+    g_Script.Stack.iTopIndex -= iParamCount;
+    Value val;
+    val.iType = OP_TYPE_STRING;
+    val.pstrStringLiteral = ch;
+    CopyValue(&g_Script._RetVal ,val);
+}
+
+
 //stack
 void Push ( Value Val )
 {
@@ -301,6 +376,7 @@ void CopyValue ( Value * pDest, Value Source )
     // If the destination already contains a string, make sure to free it first
     if ( pDest->iType == OP_TYPE_STRING )
     {
+        printf("YES");
         free(pDest->pstrStringLiteral );
         pDest->pstrStringLiteral = NULL;
     }
@@ -325,6 +401,7 @@ Value Pop ()
     // Use this index to read the top element
     Value Val;
     Val.iType = OP_TYPE_NULL;
+
     CopyValue ( & Val, g_Script.Stack.pElmnts [ iTopIndex ] );
     // Return the value to the caller
     return Val;
@@ -335,3 +412,5 @@ void PopFrame ( int iSize )
     // Decrement the top index by the size of the frame
     g_Script.Stack.iTopIndex -= iSize;
 }
+
+

@@ -74,11 +74,20 @@ typedef struct _InstrStream                     // An instruction stream
 }InstrStream;
 
 // ---- Host API Call Table ---------------------------------------------------------------
+typedef void (*func)(void);
+typedef struct _HostFunc
+{
+    char* ptrFuncName;
+    int iParamCount;
+    func fHostfunc;
+}HostFunc;
+#define MAXHOSTFUNC 5
 typedef struct _HostAPICallTable				// A host API call table
 {
     char ** ppstrCalls;							// Pointer to the call array
     int iSize;									// The number of calls in the array
-
+    HostFunc ptrHostFuncTable[MAXHOSTFUNC];
+    int iFuncNum;
 }HostAPICallTable;
 
 // ---- Scripts ---------------------------------------------------------------------------
@@ -152,8 +161,16 @@ void PopFrame ( int iSize );
 
 // ---- Function Table Interface ----------------------------------------------------------
 Func GetFunc ( int iIndex );
+int RegisterHostFunc(char *ptrName, int iCount,func ptrFunc );
 // ---- Host API Call Table Interface -----------------------------------------------------
 char * GetHostAPICall ( int iIndex );
+int GetParamAsInt(int iParamIndex);
+int GetParamAsFloat(int iParamIndex);
+char*  GetParamAsString(int iParamIndex);
+Value GetParamAsValue(int iParamIndex);
+int ReturnStringFromHost(char* ch, int iParamCount);
+int ReturnFloatFromHost(int iRet, int iParamCount);
+int ReturnIntFromHost(int iRet, int iParamCount);
 
 
 #endif

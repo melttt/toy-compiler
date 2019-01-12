@@ -37,8 +37,8 @@ Func MyFunc
         Mov GlobalArray [ 2 ], "an"
         Mov GlobalArray [ 3 ], "array"
         Concat GlobalArray [ 3 ], 213
-;        Mov GlobalArray [ 4 ], Str
-;        Mov GlobalArray [ 5 ], GlobalArray [ 3 ]
+        Mov GlobalArray [ 4 ], Str
+        Mov GlobalArray [ 5 ], GlobalArray [ 3 ]
 }
 
 
@@ -49,6 +49,9 @@ Func _Main{
     Mov b, 2
     jg b, aa, XXX
 XXX:
-    CallHost OKOK
+    Mov aa, "wuliao shuashuashua"
+    push aa
+    CallHost PrintStr
+    mov b, _RetVal
     Call MyFunc
 }
