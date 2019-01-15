@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lex.h"
 char* g_pstrSource ;
 int main(int argc, char* arvc[])
 {
@@ -32,16 +33,32 @@ int main(int argc, char* arvc[])
     fclose(pSourceFile);
 
 
+    init(g_pstrSource, iSourceSize);
+
+    Token tCurrToken;
+    int iTokenCount = 0;
+    char pstrToken[MAX_LEXEME_SIZE];
 
 
+    while(TRUE)
+    {
+        tCurrToken = GetNextToken();
 
+        if(tCurrToken == TOKEN_TYPE_END_OF_STREAM)
+            break;
 
-
-
-
-
-
-
+        switch(tCurrToken)
+        {
+            case TOKEN_TYPE_INT:
+                strcpy ( pstrToken, "Integer" );
+                break;
+            case TOKEN_TYPE_FLOAT:
+                strcpy ( pstrToken, "Float" );
+                break;
+        }
+        printf ( "%d: Token: %s, Lexeme: \"%s\"\n", iTokenCount, pstrToken, GetCurrLexeme() );
+        ++ iTokenCount;
+    }
 
     return 0;
 }
