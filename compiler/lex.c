@@ -9,6 +9,32 @@ Lexer lexer;
 // ---- Delimiters ------------------------------------------------------------------------
 char cDelims [ MAX_DELIM_COUNT ] = { ',', '(', ')', '[', ']', '{', '}', ';' };
 
+//Opstate Table
+OpState g_OpChars0 [ MAX_OP_STATE_COUNT ] = { { '+', 0, 2, 0 },{ '-', 2, 2, 1 },{ '*', 4, 1, 2 },
+                                              { '/', 5, 1, 3 },{ '%', 6, 1, 4 },{ '^', 7, 1, 5 },
+                                              { '&', 8, 2, 6 },{ '|', 10, 2, 7 },{ '#', 12, 1, 8 },
+                                              { '~', 0, 0, 9 },{ '!', 13, 1, 10 },{ '=', 14, 1, 11 },
+                                              { '<', 15, 2, 12 },{ '>', 17, 2, 13 }
+                                            };
+
+
+OpState g_OpChars1 [ MAX_OP_STATE_COUNT ] = { { '=', 0, 0, 14 }, { '+', 0, 0, 15 },     // +=, ++
+                                              { '=', 0, 0, 16 }, { '-', 0, 0, 17 },     // -=, --
+                                              { '=', 0, 0, 18 },                        // *=
+                                              { '=', 0, 0, 19 },                        // /=
+                                              { '=', 0, 0, 20 },                        // %=
+                                              { '=', 0, 0, 21 },                        // ^=
+                                              { '=', 0, 0, 22 }, { '&', 0, 0, 23 },     // &=, &&
+                                              { '=', 0, 0, 24 }, { '|', 0, 0, 25 },     // |=, ||
+                                              { '=', 0, 0, 26 },                        // #=
+                                              { '=', 0, 0, 27 },                        // !=
+                                              { '=', 0, 0, 28 },                        // ==
+                                              { '=', 0, 0, 29 }, { '<', 0, 1, 30 },     // <=, <<
+                                              { '=', 0, 0, 31 }, { '>', 1, 1, 32 } };   // >=, >>
+
+OpState g_OpChars2 [ MAX_OP_STATE_COUNT ] = { { '=', 0, 0, 33 }, { '=', 0, 0, 34 } }; // <<=, >>=
+
+
 
 void init(char* pstrSource ,int iSourceSize)
 {
@@ -16,6 +42,7 @@ void init(char* pstrSource ,int iSourceSize)
     lexer.pstrCurrLexeme = (char*)malloc(MAX_LEXEME_SIZE);
     lexer.pstrCurrSource = pstrSource;
     lexer.iSourceSize = iSourceSize;
+    LexerOpIndex = OP_TYPE_INVALID;
     LexerState = LEX_STATE_START;
     
 }
@@ -61,10 +88,40 @@ int IsCharIdent ( char cChar )
         return FALSE;
 }
 
+int IsCharOpChar ( char cChar, int iCharIndex )
+{
+    for ( int iCurrOpStateIndex = 0; iCurrOpStateIndex < MAX_OP_STATE_COUNT; ++ iCurrOpStateIndex )
+    {
+
+        char cOpChar;
+        switch ( iCharIndex )
+        {
+            case 0:
+                cOpChar = g_OpChars0 [ iCurrOpStateIndex ].cChar;
+                break;
+            case 1:
+                cOpChar = g_OpChars1 [ iCurrOpStateIndex ].cChar;
+                break;
+            case 2:
+                cOpChar = g_OpChars2 [ iCurrOpStateIndex ].cChar;
+                break;
+        }
+        if ( cChar == cOpChar )
+            return TRUE;
+    }
+    return FALSE;    
+
+}
+
 
 char GetNextChar()
 {
     return lexer.pstrCurrSource[LexerEndIndex ++];
+}
+
+int GetCurrOpIndex()
+{
+    return LexerOpIndex;
 }
 
 Token GetNextToken ()
@@ -73,6 +130,12 @@ Token GetNextToken ()
     int iCurrLexemeIndex = 0;
     int iIsFinish = FALSE;
     char cCurrChar;
+
+    //Op
+    int iCurrOpCol = 0;
+    int iCurrOpRow = 0;
+    OpState oCurrOpState;
+
     Token tToken = TOKEN_TYPE_INVALID;
 
     iIsWrite = FALSE;
