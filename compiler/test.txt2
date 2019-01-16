@@ -1,22 +1,26 @@
 293048 24 895523
+-3.14159 
 235
-    "Hello World!"
-    ""
 		253
 		  {} 52435 345 {}
 
 [ MyVar0, MyVar1, MyVar2 ]
+		   459245;
 
 	rEtUrN
 	
 	
 TRUE, false, ();
 
+3 ++ 2 ( 4 / 2 ) * 2
 
+ -22 .5 -.35 2.0
  
+> >> >>=
 
 While
 
+"Hello, world!"
 
 1
  0.0 var
@@ -29,6 +33,7 @@ While
 
 		_so_is_this___
 		
+	if ( X < Y ) Z;
 
-	63246 
+	63246 -0.2346
 	34.0
