@@ -139,6 +139,7 @@ char* GetCurrLexeme();
 int GetCurrOpIndex();
 void ExitOnInvalidInputError ( char cInput );
 void ExitOnInvalidInfo(char* pstrErrorInfo);
+void shutdown();
 
 
 

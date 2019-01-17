@@ -48,6 +48,11 @@ void init(char* pstrSource ,int iSourceSize)
     
 }
 
+void shutdown()
+{
+   free(lexer.pstrCurrLexeme); 
+   //other
+}
 int IsCharDelim ( char cChar )
 {
 
