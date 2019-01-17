@@ -9,6 +9,7 @@ Lexer lexer;
 // ---- Delimiters ------------------------------------------------------------------------
 char cDelims [ MAX_DELIM_COUNT ] = { ',', '(', ')', '[', ']', '{', '}', ';' };
 
+
 //Opstate Table
 OpState g_OpChars0 [ MAX_OP_STATE_COUNT ] = { { '+', 0, 2, 0 },{ '-', 2, 2, 1 },{ '*', 4, 1, 2 },
                                               { '/', 5, 1, 3 },{ '%', 6, 1, 4 },{ '^', 7, 1, 5 },
@@ -90,7 +91,8 @@ int IsCharIdent ( char cChar )
 
 int IsCharOpChar ( char cChar, int iCharIndex )
 {
-    for ( int iCurrOpStateIndex = 0; iCurrOpStateIndex < MAX_OP_STATE_COUNT; ++ iCurrOpStateIndex )
+    int iCurrOpStateIndex;
+    for ( iCurrOpStateIndex = 0; iCurrOpStateIndex < MAX_OP_STATE_COUNT; ++ iCurrOpStateIndex )
     {
 
         char cOpChar;
@@ -114,6 +116,34 @@ int IsCharOpChar ( char cChar, int iCharIndex )
 }
 
 
+int GetOpStateIndex(char ch,int col, int row, int len)
+{
+    int i;
+    for (i = 0; i < len; ++ i )
+    {
+
+        char cOpChar;
+        switch ( col )
+        {
+            case 0:
+                cOpChar = g_OpChars0 [ row + i ].cChar;
+                break;
+            case 1:
+                cOpChar = g_OpChars1 [ row + i ].cChar;
+                break;
+            case 2:
+                cOpChar = g_OpChars2 [ row + i ].cChar;
+                break;
+        }
+        if ( ch == cOpChar )
+        {
+            return row + i;
+        }
+    }
+    return -1;    
+}
+
+
 char GetNextChar()
 {
     return lexer.pstrCurrSource[LexerEndIndex ++];
@@ -134,6 +164,8 @@ Token GetNextToken ()
     //Op
     int iCurrOpCol = 0;
     int iCurrOpRow = 0;
+    int iCurrOpCount = MAX_OP_STATE_COUNT;
+    int iCurrOpIndex = -1;
     OpState oCurrOpState;
 
     Token tToken = TOKEN_TYPE_INVALID;
@@ -172,9 +204,21 @@ Token GetNextToken ()
                 }else if(cCurrChar == '"'){
                     iIsWrite = FALSE;
                     LexerState = LEX_STATE_STRING;
+                }else if(IsCharOpChar(cCurrChar, iCurrOpCol)){
+                    if((iCurrOpIndex = GetOpStateIndex(cCurrChar, iCurrOpCol ,iCurrOpRow, iCurrOpCount)) != -1) 
+                    {
+                        oCurrOpState = g_OpChars0[iCurrOpIndex];
+                        iCurrOpCol ++;
+                        iCurrOpRow = oCurrOpState.iSubStateIndex;
+                        iCurrOpCount = oCurrOpState.iSubStateCount;
+                        LexerState = LEX_STATE_OP;
+                    }else{
+                        //wrong
+                        ExitOnInvalidInputError ( cCurrChar );
+                    }
                 }else{
                     // wrong 
-                    ExitOnInvalidInputError(cCurrChar);
+                    ExitOnInvalidInputError ( cCurrChar );
                 }
 
                 break;
@@ -273,6 +317,42 @@ Token GetNextToken ()
                 break;
             }
 
+
+            case LEX_STATE_OP:
+            {
+                if(iCurrOpCol <= 3 && iCurrOpCount != 0 && IsCharOpChar(cCurrChar ,iCurrOpCol))
+                {
+
+                    if((iCurrOpIndex = GetOpStateIndex(cCurrChar, iCurrOpCol ,iCurrOpRow, iCurrOpCount)) != -1) 
+                    {
+                        if(iCurrOpCol == 1)
+                            oCurrOpState = g_OpChars1[iCurrOpIndex];
+                        else
+                            oCurrOpState = g_OpChars2[iCurrOpIndex];
+
+                        iCurrOpCol ++;
+                        iCurrOpRow = oCurrOpState.iSubStateIndex;
+                        iCurrOpCount = oCurrOpState.iSubStateCount;
+                    }else{
+                        //wrong
+                        ExitOnInvalidInputError ( cCurrChar );
+                    }
+                    
+                }else if(IsCharWhitespace(cCurrChar) || IsCharDelim(cCurrChar) || IsCharIdent(cCurrChar) ||
+                        cCurrChar == '.' || cCurrChar == '"'){
+
+                    LexerOpIndex = oCurrOpState.iIndex;
+                    iIsWrite = FALSE;
+                    iIsFinish = TRUE;
+                }else{
+                    //wrong
+                    ExitOnInvalidInputError(cCurrChar);
+                }
+
+
+                break;
+            }
+
             default:
                 ExitOnInvalidInfo(LEX_ERR_WRONG_STATE);
 
@@ -364,6 +444,10 @@ Token GetNextToken ()
 
         case LEX_STATE_STRING_CLOSE_QUOTE:
             tToken = TOKEN_TYPE_STRING;
+            break;
+
+        case LEX_STATE_OP:
+            tToken = TOKEN_TYPE_OP;
             break;
 
         default:

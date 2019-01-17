@@ -124,6 +124,9 @@ int main(int argc, char* arvc[])
             case TOKEN_TYPE_STRING:
                 strcpy ( pstrToken, "String" );
                 break;
+            case TOKEN_TYPE_OP:
+                sprintf ( pstrToken, "Operator %d", LexerOpIndex );
+                break;
 
             default:
                 strcpy ( pstrToken, "unknow" );

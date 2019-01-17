@@ -115,6 +115,7 @@ typedef struct _OpState                             // Operator state
 //----- Wrong Infomation------------------------
 #define LEX_ERR_FLOATWRONG_ONLY_POINT_CHAR "only one point"
 #define LEX_ERR_WRONG_STATE "wrong lex state"
+#define LEX_ERR_WRONG_OP "wrong op"
 
 typedef struct{
     int iStartLexemeIndex;
