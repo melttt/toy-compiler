@@ -27,6 +27,7 @@ typedef struct _LinkedListNode                  // A linked list node
 
 typedef struct _LinkedList                      // A linked list
 {
+
      LinkedListNode* pHead,                     // Pointer to head node
                    * pTail;                     // Pointer to tail nail node
     int iNodeCount;                             // The number of nodes in the list

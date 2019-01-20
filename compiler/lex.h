@@ -1,6 +1,7 @@
 #ifndef _LEX_H
 #define _LEX_H
 
+#include "xsc.h"
 #ifndef TRUE
 #define TRUE                        1           // True
 #endif
@@ -121,8 +122,10 @@ typedef struct{
     int iStartLexemeIndex;
     int iEndLexemeIndex; 
     char* pstrCurrLexeme;
-    char* pstrCurrSource;
-    int iSourceSize;
+
+    int iCurrLineIndex; 
+    LinkedListNode* pCurrLine;
+
     int iCurrState;
     int iCurrOpIndex;
 }Lexer;
@@ -136,6 +139,7 @@ extern Lexer lexer;
 void init();
 Token GetNextToken ();
 char* GetCurrLexeme();
+char GetNextChar();
 int GetCurrOpIndex();
 void ExitOnInvalidInputError ( char cInput );
 void ExitOnInvalidInfo(char* pstrErrorInfo);

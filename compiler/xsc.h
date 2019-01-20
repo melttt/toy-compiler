@@ -23,9 +23,11 @@ typedef struct _ScriptHeader                    // Script header data
     int iMainFuncIndex;							// _Main ()'s function index
 }ScriptHeader;
 
+extern LinkedList g_SourceCode;
 extern ScriptHeader g_ScriptHeader;
 extern LinkedList g_ICodeStream; 
 extern LinkedList g_FuncTable;   
 extern LinkedList g_SymbolTable;
 extern LinkedList g_StringTable;
+
 #endif

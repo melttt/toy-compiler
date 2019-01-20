@@ -2,48 +2,55 @@
 #include <stdlib.h>
 #include <string.h>
 #include "lex.h"
+#include "preprocessor.h"
 char* g_pstrSource ;
+LinkedList g_SourceCode;
+
+void LoadSourceFile (char* pstrSourceFileName)
+{
+    // ---- Open the input file
+    FILE * pSourceFile;
+    if ( ! ( pSourceFile = fopen ( pstrSourceFileName, "r" ) ) )
+        printf ( "Could not open source file for input" );
+
+
+    while ( ! feof ( pSourceFile ) )
+    {
+        char * pstrCurrLine = ( char * ) malloc ( MAX_SOURCE_LINE_SIZE + 1 );
+        fgets ( pstrCurrLine, MAX_SOURCE_LINE_SIZE, pSourceFile );
+
+        AddNode ( & g_SourceCode, pstrCurrLine );
+    }
+
+    fclose ( pSourceFile );
+
+}
+
 int main(int argc, char* arvc[])
 {
-    FILE *pSourceFile;
     if(argc < 2)
     {
         printf("need a file\n");
         exit(0);
     }
-    
-    if((pSourceFile = fopen(arvc[1], "rb")) == 0)
-    {
-        printf("open file error\n");
-    }
-
-    fseek(pSourceFile, 0, SEEK_END);
-    int iSourceSize = ftell(pSourceFile);
-    fseek(pSourceFile, 0, SEEK_SET);
-
-    g_pstrSource = (char*)malloc(iSourceSize + 1);
-
-    int i;
-    for(i = 0 ; i < iSourceSize ; i ++)
-    {
-         
-        g_pstrSource[i] =  fgetc(pSourceFile);
-    }
-    if(i >= 1 && g_pstrSource[i - 1] != '\n')
-    { 
-        g_pstrSource[i] = '\n';
-        i ++; 
-        iSourceSize ++;
-    }
-    g_pstrSource[i] = '\0';
-    fclose(pSourceFile);
+    LoadSourceFile(arvc[1]);
 
 
-    init(g_pstrSource, iSourceSize);
+
+    PrintFile();
+    printf("\n------------------\n");
+    StripComment(); 
+    PrintFile();
+//    PrintFile();
+
+    /*
+    init(g_SourceCode.pHead);
 
     Token tCurrToken;
     int iTokenCount = 0;
     char pstrToken[MAX_LEXEME_SIZE];
+
+
 
 
     while(TRUE)
@@ -135,6 +142,7 @@ int main(int argc, char* arvc[])
         printf ( "%d: Token: %s, Lexeme: \"%s\"\n", iTokenCount, pstrToken, GetCurrLexeme() );
         ++ iTokenCount;
     }
+*/
 
     return 0;
 }

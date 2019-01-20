@@ -37,15 +37,16 @@ OpState g_OpChars2 [ MAX_OP_STATE_COUNT ] = { { '=', 0, 0, 33 }, { '=', 0, 0, 34
 
 
 
-void init(char* pstrSource ,int iSourceSize)
+void init(LinkedListNode* pCurrLine)
 {
     lexer.iStartLexemeIndex = lexer.iEndLexemeIndex = 0;
     lexer.pstrCurrLexeme = (char*)malloc(MAX_LEXEME_SIZE);
-    lexer.pstrCurrSource = pstrSource;
-    lexer.iSourceSize = iSourceSize;
+
     LexerOpIndex = OP_TYPE_INVALID;
     LexerState = LEX_STATE_START;
-    
+
+    lexer.iCurrLineIndex = 0;
+    lexer.pCurrLine = pCurrLine;
 }
 
 void shutdown()
@@ -57,7 +58,8 @@ int IsCharDelim ( char cChar )
 {
 
     // Loop through each delimiter in the array and compare it to the specified character
-    for ( int iCurrDelimIndex = 0; iCurrDelimIndex < MAX_DELIM_COUNT; ++ iCurrDelimIndex )
+    int iCurrDelimIndex;
+    for ( iCurrDelimIndex = 0; iCurrDelimIndex < MAX_DELIM_COUNT; ++ iCurrDelimIndex )
     {
         // Return TRUE if a match was found
         if ( cChar == cDelims [ iCurrDelimIndex ] )
@@ -151,7 +153,28 @@ int GetOpStateIndex(char ch,int col, int row, int len)
 
 char GetNextChar()
 {
-    return lexer.pstrCurrSource[LexerEndIndex ++];
+        char * pstrCurrLine;
+        if ( lexer.pCurrLine )
+            pstrCurrLine = ( char * ) lexer.pCurrLine->pData;
+        else
+            return '\0';
+
+        if (lexer.iEndLexemeIndex >= ( int ) strlen ( pstrCurrLine ) )
+        {
+            lexer.pCurrLine = lexer.pCurrLine->pNext;
+            if ( lexer.pCurrLine )
+            {
+                pstrCurrLine = ( char * ) lexer.pCurrLine->pData;
+                ++ lexer.iCurrLineIndex;
+                lexer.iStartLexemeIndex = 0;
+                lexer.iEndLexemeIndex = 0;
+            }
+            else
+            {
+                return '\0';
+            }
+        }
+        return pstrCurrLine[lexer.iEndLexemeIndex++];
 }
 
 int GetCurrOpIndex()
@@ -182,13 +205,13 @@ Token GetNextToken ()
 
     while(TRUE)
     {
-        if(LexerEndIndex >= lexer.iSourceSize)
-        {
-            return TOKEN_TYPE_END_OF_STREAM;
-        }
-
         iIsWrite = TRUE;
         cCurrChar = GetNextChar();
+        if(cCurrChar == '\0')
+        {
+
+            return TOKEN_TYPE_END_OF_STREAM;
+        }
 
         switch(LexerState)
         {

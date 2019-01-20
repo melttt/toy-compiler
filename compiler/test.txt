@@ -1,4 +1,5 @@
 293048 24 895523
+
 -3.14159 
 235
 		253
@@ -10,9 +11,14 @@
 	rEtUrN
 	
 	
-TRUE, false, ();
+TRUE, false, (); //fadkljjjjjj
 
-3 ++ 2 ( 4 / 2 ) * 2
+3 ++ 2 ( 4 / 2 ) * 2   /*123123123213213123
+
+
+
+
+
 
  -22 .5 -.35 2.0
  
@@ -20,20 +26,23 @@ TRUE, false, ();
 
 While
 
-"Hello, world!"
 
+
+"Hello, world!"
+//asdasd
 1
  0.0 var
   1.0 var
    0
    
+*/
    	This_is_an_identifier
 
 	02345
 
 		_so_is_this___
 		
-	if ( X < Y ) Z;
+	if ( X < Y )/*dfadfasdsdf*/ Z;   //sdfasdfasfdf
 
 	63246 -0.2346
 	34.0
