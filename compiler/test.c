@@ -13,17 +13,16 @@ void LoadSourceFile (char* pstrSourceFileName)
     if ( ! ( pSourceFile = fopen ( pstrSourceFileName, "r" ) ) )
         printf ( "Could not open source file for input" );
 
-
     while ( ! feof ( pSourceFile ) )
     {
-        char * pstrCurrLine = ( char * ) malloc ( MAX_SOURCE_LINE_SIZE + 1 );
-        fgets ( pstrCurrLine, MAX_SOURCE_LINE_SIZE, pSourceFile );
+        char* pstrCurrLine = ( char * ) malloc ( MAX_SOURCE_LINE_SIZE + 1 );
 
-        AddNode ( & g_SourceCode, pstrCurrLine );
+        fgets(pstrCurrLine, MAX_SOURCE_LINE_SIZE, pSourceFile );
+        AddNode(&g_SourceCode, pstrCurrLine );
     }
 
-    fclose ( pSourceFile );
 
+    fclose ( pSourceFile );
 }
 
 int main(int argc, char* arvc[])
@@ -33,25 +32,21 @@ int main(int argc, char* arvc[])
         printf("need a file\n");
         exit(0);
     }
-    LoadSourceFile(arvc[1]);
-
+    LoadSourceFile( arvc[1]);
 
 
     PrintFile();
     printf("\n------------------\n");
     StripComment(); 
     PrintFile();
-//    PrintFile();
 
-    /*
-    init(g_SourceCode.pHead);
+
+    printf("\n------------------\n");
+    ResetLexer();
 
     Token tCurrToken;
     int iTokenCount = 0;
     char pstrToken[MAX_LEXEME_SIZE];
-
-
-
 
     while(TRUE)
     {
@@ -142,7 +137,6 @@ int main(int argc, char* arvc[])
         printf ( "%d: Token: %s, Lexeme: \"%s\"\n", iTokenCount, pstrToken, GetCurrLexeme() );
         ++ iTokenCount;
     }
-*/
 
     return 0;
 }

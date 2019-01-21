@@ -4,6 +4,7 @@
 #define SCOPE_GLOBAL                    0       // Global scope
 #define SYMBOL_TYPE_VAR                 0       // Variable
 #define SYMBOL_TYPE_PARAM               1       // Parameter
+
 typedef struct _SymbolNode                          // A symbol table node
 {
     int iIndex;									    // Index

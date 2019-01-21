@@ -26,7 +26,6 @@ void InitLinkedList ( LinkedList * pList )
     pList->pTail = NULL;
 
     // Set the node count to zero, since the list is currently empty
-
     pList->iNodeCount = 0;
 }
 
@@ -49,13 +48,10 @@ int AddNode ( LinkedList * pList, void * pData )
     if ( ! pList->iNodeCount )
     {
         // Point the head and tail of the list at the node
-
         pList->pHead = pNewNode;
         pList->pTail = pNewNode;
     }
-
     // Otherwise append it to the list and update the tail pointer
-
     else
     {
         // Alter the tail's next pointer to point to the new node

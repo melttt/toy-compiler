@@ -13,7 +13,7 @@
 	
 TRUE, false, (); //fadkljjjjjj
 
-3 ++ 2 ( 4 / 2 ) * 2   /*123123123213213123
+3 ++ 2 ( 4 / 2 ) * 2   
 
 
 
@@ -35,7 +35,6 @@ While
   1.0 var
    0
    
-*/
    	This_is_an_identifier
 
 	02345
@@ -43,6 +42,6 @@ While
 		_so_is_this___
 		
 	if ( X < Y )/*dfadfasdsdf*/ Z;   //sdfasdfasfdf
-
+/*
 	63246 -0.2346
-	34.0
+	34.0 */

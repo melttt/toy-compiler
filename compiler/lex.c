@@ -6,6 +6,7 @@
 
 
 Lexer lexer;
+Lexer prevlexer;
 // ---- Delimiters ------------------------------------------------------------------------
 char cDelims [ MAX_DELIM_COUNT ] = { ',', '(', ')', '[', ']', '{', '}', ';' };
 
@@ -37,22 +38,30 @@ OpState g_OpChars2 [ MAX_OP_STATE_COUNT ] = { { '=', 0, 0, 33 }, { '=', 0, 0, 34
 
 
 
-void init(LinkedListNode* pCurrLine)
-{
-    lexer.iStartLexemeIndex = lexer.iEndLexemeIndex = 0;
-    lexer.pstrCurrLexeme = (char*)malloc(MAX_LEXEME_SIZE);
 
+void ResetLexer()
+{
+    lexer.iCurrLineIndex = 0;
+    lexer.pCurrLine = g_SourceCode.pHead;
+    lexer.iStartLexemeIndex = lexer.iEndLexemeIndex = 0;
     LexerOpIndex = OP_TYPE_INVALID;
     LexerState = LEX_STATE_START;
-
-    lexer.iCurrLineIndex = 0;
-    lexer.pCurrLine = pCurrLine;
 }
 
-void shutdown()
+
+
+void CopyLexerState (Lexer *pDestLexer, Lexer* pSourceLexer )
 {
-   free(lexer.pstrCurrLexeme); 
-   //other
+    pDestLexer->pCurrLine = pSourceLexer->pCurrLine;
+    pDestLexer->tCurrToken = pSourceLexer->tCurrToken;
+
+    pDestLexer->iCurrLineIndex = pSourceLexer->iCurrLineIndex;
+    strcpy ( pDestLexer->pstrCurrLexeme, pSourceLexer->pstrCurrLexeme );
+    pDestLexer->iStartLexemeIndex = pSourceLexer->iStartLexemeIndex;
+    pDestLexer->iEndLexemeIndex = pSourceLexer->iEndLexemeIndex;
+
+    pDestLexer->iCurrOpIndex = pSourceLexer->iCurrOpIndex;
+    pDestLexer->iCurrState = pSourceLexer->iCurrState;
 }
 int IsCharDelim ( char cChar )
 {
@@ -153,28 +162,28 @@ int GetOpStateIndex(char ch,int col, int row, int len)
 
 char GetNextChar()
 {
-        char * pstrCurrLine;
-        if ( lexer.pCurrLine )
-            pstrCurrLine = ( char * ) lexer.pCurrLine->pData;
-        else
-            return '\0';
+    char * pstrCurrLine;
+    if ( lexer.pCurrLine )
+        pstrCurrLine = ( char * ) lexer.pCurrLine->pData;
+    else
+        return '\0';
 
-        if (lexer.iEndLexemeIndex >= ( int ) strlen ( pstrCurrLine ) )
+    if (lexer.iEndLexemeIndex >= ( int ) strlen ( pstrCurrLine ) )
+    {
+        lexer.pCurrLine = lexer.pCurrLine->pNext;
+        if ( lexer.pCurrLine )
         {
-            lexer.pCurrLine = lexer.pCurrLine->pNext;
-            if ( lexer.pCurrLine )
-            {
-                pstrCurrLine = ( char * ) lexer.pCurrLine->pData;
-                ++ lexer.iCurrLineIndex;
-                lexer.iStartLexemeIndex = 0;
-                lexer.iEndLexemeIndex = 0;
-            }
-            else
-            {
-                return '\0';
-            }
+            pstrCurrLine = ( char * ) lexer.pCurrLine->pData;
+            ++ lexer.iCurrLineIndex;
+            lexer.iStartLexemeIndex = 0;
+            lexer.iEndLexemeIndex = 0;
         }
-        return pstrCurrLine[lexer.iEndLexemeIndex++];
+        else
+        {
+            return '\0';
+        }
+    }
+    return pstrCurrLine[lexer.iEndLexemeIndex++];
 }
 
 int GetCurrOpIndex()
@@ -182,8 +191,11 @@ int GetCurrOpIndex()
     return LexerOpIndex;
 }
 
+
 Token GetNextToken ()
 {
+    CopyLexerState (&prevlexer,&lexer);
+
     int iIsWrite = FALSE;
     int iCurrLexemeIndex = 0;
     int iIsFinish = FALSE;
@@ -199,6 +211,7 @@ Token GetNextToken ()
     Token tToken = TOKEN_TYPE_INVALID;
 
     iIsWrite = FALSE;
+
     LexerStartIndex = LexerEndIndex;
     LexerState = LEX_STATE_START;
 
@@ -209,8 +222,8 @@ Token GetNextToken ()
         cCurrChar = GetNextChar();
         if(cCurrChar == '\0')
         {
-
-            return TOKEN_TYPE_END_OF_STREAM;
+            LexerState = LEX_STATE_END;
+            break;
         }
 
         switch(LexerState)
@@ -241,12 +254,13 @@ Token GetNextToken ()
                         iCurrOpCount = oCurrOpState.iSubStateCount;
                         LexerState = LEX_STATE_OP;
                     }else{
-                        //wrong
-                        ExitOnInvalidInputError ( cCurrChar );
+
+                        LexerState = LEX_STATE_UNKNOW;
+                        iIsFinish = TRUE;
                     }
                 }else{
-                    // wrong 
-                    ExitOnInvalidInputError ( cCurrChar );
+                    LexerState = LEX_STATE_UNKNOW;
+                    iIsFinish = TRUE;
                 }
 
                 break;
@@ -264,8 +278,8 @@ Token GetNextToken ()
                     iIsWrite = FALSE;
                     iIsFinish = TRUE; 
                 }else{
-                    // wrong 
-                    ExitOnInvalidInputError(cCurrChar);
+                    LexerState = LEX_STATE_UNKNOW;
+                    iIsFinish = TRUE;
                 }
                 break;
             }
@@ -278,13 +292,15 @@ Token GetNextToken ()
                 {
                     if(iCurrLexemeIndex <= 1 || (iCurrLexemeIndex > 1 && lexer.pstrCurrLexeme[iCurrLexemeIndex - 1] == '.'))
                     {
-                        ExitOnInvalidInfo(LEX_ERR_FLOATWRONG_ONLY_POINT_CHAR);
+                        LexerState = LEX_STATE_UNKNOW;
+                        iIsFinish = TRUE;
+                    }else{
+                        iIsWrite = FALSE;
+                        iIsFinish = TRUE;
                     }
-                    iIsWrite = FALSE;
-                    iIsFinish = TRUE;
                 }else{
-                    // wrong 
-                    ExitOnInvalidInputError(cCurrChar);
+                    LexerState = LEX_STATE_UNKNOW;
+                    iIsFinish = TRUE;
                 }
 
                 break;
@@ -301,8 +317,8 @@ Token GetNextToken ()
                     iIsWrite = FALSE;
                     iIsFinish = TRUE;
                 }else{
-                    // wrong 
-                    ExitOnInvalidInputError(cCurrChar);
+                    LexerState = LEX_STATE_UNKNOW;
+                    iIsFinish = TRUE;
                 }
 
 
@@ -362,8 +378,8 @@ Token GetNextToken ()
                         iCurrOpRow = oCurrOpState.iSubStateIndex;
                         iCurrOpCount = oCurrOpState.iSubStateCount;
                     }else{
-                        //wrong
-                        ExitOnInvalidInputError ( cCurrChar );
+                        LexerState = LEX_STATE_UNKNOW;
+                        iIsFinish = TRUE;
                     }
                     
                 }else if(IsCharWhitespace(cCurrChar) || IsCharDelim(cCurrChar) || IsCharIdent(cCurrChar) ||
@@ -373,8 +389,8 @@ Token GetNextToken ()
                     iIsWrite = FALSE;
                     iIsFinish = TRUE;
                 }else{
-                    //wrong
-                    ExitOnInvalidInputError(cCurrChar);
+                    LexerState = LEX_STATE_UNKNOW;
+                    iIsFinish = TRUE;
                 }
 
 
@@ -382,7 +398,8 @@ Token GetNextToken ()
             }
 
             default:
-                ExitOnInvalidInfo(LEX_ERR_WRONG_STATE);
+                LexerState = LEX_STATE_UNKNOW;
+                iIsFinish = TRUE;
 
         }
 
@@ -478,10 +495,19 @@ Token GetNextToken ()
             tToken = TOKEN_TYPE_OP;
             break;
 
+        case LEX_STATE_UNKNOW:
+            tToken = TOKEN_TYPE_INVALID;
+            break;
+
+        case LEX_STATE_END:
+            tToken = TOKEN_TYPE_END_OF_STREAM;
+            break;
+
         default:
             tToken = TOKEN_TYPE_INVALID;
     }
 
+    lexer.tCurrToken = tToken;
     return tToken;
 }
 
@@ -490,14 +516,49 @@ char* GetCurrLexeme()
     return lexer.pstrCurrLexeme;
 }
 
-void ExitOnInvalidInfo(char* pstrErrorInfo)
+char* GetCurrSourceLine ()
 {
-    printf("Error:%s\n", pstrErrorInfo);
-    exit( 0 );
-    
+    if (lexer.pCurrLine)
+        return (char*)lexer.pCurrLine->pData;
+    else
+        return NULL;
 }
-void ExitOnInvalidInputError ( char cInput )
+
+int GetCurrSourceLineIndex ()
 {
-    printf ( "Error: '%c' unexpected.\n", cInput );
-    exit ( 0 );
+    return lexer.iCurrLineIndex;
 }
+
+Token GetCurrToken ()
+{
+    return lexer.tCurrToken;
+}
+
+void CopyCurrLexeme ( char * pstrBuffer )
+{
+    strcpy ( pstrBuffer, lexer.pstrCurrLexeme );
+}
+
+
+
+char GetLookAheadChar ()
+{
+    Lexer PrevLexer;
+    CopyLexerState (&PrevLexer, &lexer);
+    char cCurrChar;
+    while ( TRUE )
+    {
+        cCurrChar = GetNextChar ();
+        if ( ! IsCharWhitespace ( cCurrChar ) )
+            break;
+    }
+    CopyLexerState ( &lexer, &PrevLexer );
+    return cCurrChar;
+
+}
+
+void RewindTokenStream ()
+{
+    CopyLexerState(&lexer,&prevlexer);
+}
+

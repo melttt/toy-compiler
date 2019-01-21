@@ -13,6 +13,7 @@
 // ---- Lexemes ---------------------------------------------------------------------------
 #define MAX_LEXEME_SIZE                 1024        // Maximum individual lexeme size
 // ---- Lexer States ----------------------------------------------------------------------
+#define LEX_STATE_UNKNOW               -1           
 #define LEX_STATE_START                 0           // Start state
 #define LEX_STATE_INT                   1           // Integer
 #define LEX_STATE_FLOAT                 2           // Float
@@ -23,7 +24,7 @@
 #define LEX_STATE_STRING                8           // String value
 #define LEX_STATE_STRING_ESCAPE         9           // Escape sequence
 #define LEX_STATE_STRING_CLOSE_QUOTE    10          // String closing quote
-
+#define LEX_STATE_END                   11
 typedef int Token;                                      // Token type
 // ---- Token Types -----------------------------------------------------------------------
 #define MAX_OP_STATE_COUNT              32          // Maximum number of operator
@@ -121,11 +122,12 @@ typedef struct _OpState                             // Operator state
 typedef struct{
     int iStartLexemeIndex;
     int iEndLexemeIndex; 
-    char* pstrCurrLexeme;
-
+    char pstrCurrLexeme[MAX_SOURCE_LINE_SIZE];
     int iCurrLineIndex; 
+
     LinkedListNode* pCurrLine;
 
+    Token tCurrToken;
     int iCurrState;
     int iCurrOpIndex;
 }Lexer;
@@ -136,7 +138,7 @@ extern Lexer lexer;
 #define LexerState (lexer.iCurrState)
 #define LexerOpIndex (lexer.iCurrOpIndex)
 
-void init();
+void ResetLexer();
 Token GetNextToken ();
 char* GetCurrLexeme();
 char GetNextChar();
@@ -145,30 +147,9 @@ void ExitOnInvalidInputError ( char cInput );
 void ExitOnInvalidInfo(char* pstrErrorInfo);
 void shutdown();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+int IsCharDelim ( char cChar );
+int IsCharWhitespace ( char cChar );
+int IsCharNumeric ( char cChar );
+int IsCharIdent ( char cChar );
 
 #endif

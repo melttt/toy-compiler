@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "preprocessor.h"
-
+#include "lex.h"
 
 int HasNextChar(LinkedListNode* pCurrNode ,int iCurrLineIndex)
 {
@@ -133,21 +133,4 @@ void PrintFile()
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

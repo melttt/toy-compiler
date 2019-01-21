@@ -4,7 +4,7 @@
 typedef struct _FuncNode                            // A function table node
 {
     int iIndex;									    // Index
-    char pstrName [MAX_IDENT_SIZE];                 // Name
+    char pstrName[MAX_IDENT_SIZE];                 // Name
     int iIsHostAPI;                                 // Is this a host API function?
     int iParamCount;                                // The number of accepted parameters
     LinkedList ICodeStream;                         // Local I-code stream
