@@ -29,36 +29,39 @@ typedef int Token;                                      // Token type
 // ---- Token Types -----------------------------------------------------------------------
 #define MAX_OP_STATE_COUNT              32          // Maximum number of operator
 
-#define TOKEN_TYPE_INVALID             -1
-#define TOKEN_TYPE_END_OF_STREAM        0           // End of the token stream
-#define TOKEN_TYPE_INT                  1           // Integer
-#define TOKEN_TYPE_FLOAT                2           // Float
-#define TOKEN_TYPE_IDENT                3           // Identifier
 
-#define TOKEN_TYPE_RSRVD_VAR            4           // var/var []
-#define TOKEN_TYPE_RSRVD_TRUE           5           // true
-#define TOKEN_TYPE_RSRVD_FALSE          6           // false
-#define TOKEN_TYPE_RSRVD_IF             7           // if
-#define TOKEN_TYPE_RSRVD_ELSE           8           // else
-#define TOKEN_TYPE_RSRVD_BREAK          9           // break
-#define TOKEN_TYPE_RSRVD_CONTINUE       10          // continue
-#define TOKEN_TYPE_RSRVD_FOR            11          // for
-#define TOKEN_TYPE_RSRVD_WHILE          12          // while
-#define TOKEN_TYPE_RSRVD_FUNC           13          // func
-#define TOKEN_TYPE_RSRVD_RETURN         14          // return
 
-#define TOKEN_TYPE_OP                   15          // Operator
+// ---- Token Types -----------------------------------------------------------------------
 
-#define TOKEN_TYPE_DELIM_COMMA          16          // ,
-#define TOKEN_TYPE_DELIM_OPEN_PAREN     17          // (
-#define TOKEN_TYPE_DELIM_CLOSE_PAREN    18          // )
-#define TOKEN_TYPE_DELIM_OPEN_BRACE     19          // [
-#define TOKEN_TYPE_DELIM_CLOSE_BRACE    20          // ]
-#define TOKEN_TYPE_DELIM_OPEN_CURLY_BRACE   21      // {
-#define TOKEN_TYPE_DELIM_CLOSE_CURLY_BRACE  22      // }
-#define TOKEN_TYPE_DELIM_SEMICOLON      23          // ;
+#define TOKEN_TYPE_END_OF_STREAM        0       // End of the token stream
+#define TOKEN_TYPE_INVALID              1       // Invalid token
+#define TOKEN_TYPE_INT                  2       // Integer
+#define TOKEN_TYPE_FLOAT                3       // Float
+#define TOKEN_TYPE_IDENT                4       // Identifier
+#define TOKEN_TYPE_RSRVD_VAR            5       // var/var []
+#define TOKEN_TYPE_RSRVD_TRUE           6       // true
+#define TOKEN_TYPE_RSRVD_FALSE          7       // false
+#define TOKEN_TYPE_RSRVD_IF             8       // if
+#define TOKEN_TYPE_RSRVD_ELSE           9       // else
+#define TOKEN_TYPE_RSRVD_BREAK          10      // break
+#define TOKEN_TYPE_RSRVD_CONTINUE       11      // continue
+#define TOKEN_TYPE_RSRVD_FOR            12      // for
+#define TOKEN_TYPE_RSRVD_WHILE          13      // while
+#define TOKEN_TYPE_RSRVD_FUNC           14      // func
+#define TOKEN_TYPE_RSRVD_RETURN         15      // return
+#define TOKEN_TYPE_RSRVD_HOST           16      // host
+#define TOKEN_TYPE_OP                   18      // Operator
+#define TOKEN_TYPE_DELIM_COMMA          19      // ,
+#define TOKEN_TYPE_DELIM_OPEN_PAREN     20      // (
+#define TOKEN_TYPE_DELIM_CLOSE_PAREN    21      // )
+#define TOKEN_TYPE_DELIM_OPEN_BRACE     22      // [
+#define TOKEN_TYPE_DELIM_CLOSE_BRACE    23      // ]
+#define TOKEN_TYPE_DELIM_OPEN_CURLY_BRACE   24  // {
+#define TOKEN_TYPE_DELIM_CLOSE_CURLY_BRACE  25  // }
+#define TOKEN_TYPE_DELIM_SEMICOLON      26      // ;
+#define TOKEN_TYPE_STRING               27      // String
 
-#define TOKEN_TYPE_STRING               24          // String
+
 
 
 //Delimiter
@@ -75,12 +78,17 @@ typedef int Token;                                      // Token type
 #define OP_TYPE_EXP                     5           // ^
 #define OP_TYPE_INC                     15          // ++
 #define OP_TYPE_DEC                     17          // --
+
+#define OP_TYPE_ASSIGN                  11          // =
 #define OP_TYPE_ASSIGN_ADD              14          // +=
 #define OP_TYPE_ASSIGN_SUB              16          // -=
 #define OP_TYPE_ASSIGN_MUL              18          // *=
 #define OP_TYPE_ASSIGN_DIV              19          // /=
 #define OP_TYPE_ASSIGN_MOD              20          // %=
 #define OP_TYPE_ASSIGN_EXP              21          // ^=
+#define OP_TYPE_ASSIGN_CONCAT           36          // $=
+
+
 // ---- Bitwise
 #define OP_TYPE_BITWISE_AND             6           // &
 #define OP_TYPE_BITWISE_OR              7           // |
@@ -93,6 +101,7 @@ typedef int Token;                                      // Token type
 #define OP_TYPE_ASSIGN_XOR              26          // #=
 #define OP_TYPE_ASSIGN_SHIFT_LEFT       33          // <<=
 #define OP_TYPE_ASSIGN_SHIFT_RIGHT      34          // >>=
+#define OP_TYPE_CONCAT                  35       // $
 // ---- Logical
 #define OP_TYPE_LOGICAL_AND             23          // &&
 #define OP_TYPE_LOGICAL_OR              25          // ||
@@ -140,9 +149,11 @@ extern Lexer lexer;
 
 void ResetLexer();
 Token GetNextToken ();
+Token GetCurrToken ();
 char* GetCurrLexeme();
 char GetNextChar();
 int GetCurrOpIndex();
+int GetCurrOp ();
 void ExitOnInvalidInputError ( char cInput );
 void ExitOnInvalidInfo(char* pstrErrorInfo);
 void shutdown();
@@ -152,4 +163,8 @@ int IsCharWhitespace ( char cChar );
 int IsCharNumeric ( char cChar );
 int IsCharIdent ( char cChar );
 
+void RewindTokenStream ();
+char* GetCurrSourceLine ();
+char GetLookAheadChar ();
+void CopyCurrLexeme ( char * pstrBuffer );
 #endif

@@ -191,6 +191,11 @@ int GetCurrOpIndex()
     return LexerOpIndex;
 }
 
+int GetCurrOp ()
+{
+    return lexer.iCurrOpIndex;
+}
+
 
 Token GetNextToken ()
 {
@@ -454,6 +459,8 @@ Token GetNextToken ()
                 tToken = TOKEN_TYPE_RSRVD_FUNC;
             if (strcasecmp (GetCurrLexeme(), "return" ) == 0 )
                 tToken = TOKEN_TYPE_RSRVD_RETURN;
+            if ( strcasecmp (GetCurrLexeme(), "host" ) == 0 )
+                tToken = TOKEN_TYPE_RSRVD_HOST;
             break;
 
         case LEX_STATE_DELIM:
@@ -538,7 +545,6 @@ void CopyCurrLexeme ( char * pstrBuffer )
 {
     strcpy ( pstrBuffer, lexer.pstrCurrLexeme );
 }
-
 
 
 char GetLookAheadChar ()

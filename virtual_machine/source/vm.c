@@ -1022,7 +1022,7 @@ void ShutDown ()
 
 }
 
-void PrintStr()
+void PrintString()
 {
     char *ch = GetParamAsString(0);
 
@@ -1048,7 +1048,7 @@ void Init ()
 
     memset(g_Script.HostAPICallTable.ptrHostFuncTable, 0 ,sizeof(g_Script.HostAPICallTable.ptrHostFuncTable));
     g_Script.HostAPICallTable.iFuncNum = 0;
-    RegisterHostFunc("PrintStr", 1, PrintStr);
+    RegisterHostFunc("PrintString", 1, PrintString);
     
 }
 

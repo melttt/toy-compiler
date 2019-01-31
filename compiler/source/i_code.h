@@ -109,7 +109,7 @@ typedef struct _ICodeNode                           // An I-code node
 
 
 ICodeNode * GetICodeNodeByImpIndex ( int iFuncIndex, int iInstrIndex );
-void AddICodeSourceLine ( int iFuncIndex, char * pstrSourceLine );
+void AddICodeSourceLine (int iFuncIndex, char * pstrSourceLine );
 int AddICodeInstr ( int iFuncIndex, int iOpcode );
 Op * GetICodeOpByIndex ( ICodeNode * pInstr, int iOpIndex );
 void AddICodeOp ( int iFuncIndex, int iInstrIndex, Op Value );
